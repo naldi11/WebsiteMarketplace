@@ -1,0 +1,65 @@
+<!-- Voucher Section -->
+@if(isset($vouchers) && $vouchers->isNotEmpty())
+<section id="vouchers" class="bg-white py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title fs-4 text-uppercase fw-bold mb-0">🎟️ Voucher Diskon Aktif</h2>
+            @auth
+            <a href="{{ route('cart.index') }}" class="btn btn-sm btn-outline-dark rounded-pill">Lihat Keranjang</a>
+            @endauth
+        </div>
+
+        <div class="row g-3">
+            @foreach($vouchers as $voucher)
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="card-body p-4 text-white">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-1">{{ $voucher->code }}</h5>
+                                <p class="mb-0 small opacity-90">
+                                    Diskon Rp {{ number_format($voucher->discount_amount, 0, ',', '.') }}
+                                </p>
+                            </div>
+                            <span class="badge bg-white text-dark small">
+                                Tersisa {{ $voucher->usage_limit - $voucher->usage_count }}
+                            </span>
+                        </div>
+                        @if($voucher->min_purchase > 0)
+                        <p class="mb-2 small opacity-75">
+                            Min. belanja Rp {{ number_format($voucher->min_purchase, 0, ',', '.') }}
+                        </p>
+                        @endif
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-white"
+                            style="opacity: 0.8;">
+                            <small class="font-monospace text-white" id="voucher-{{ $voucher->id }}">{{ $voucher->code
+                                }}</small>
+                            @auth
+                            <button type="button" class="btn btn-sm btn-light" onclick="
+                                                    const code = '{{ $voucher->code }}';
+                                                    const tempInput = document.createElement('input');
+                                                    tempInput.value = code;
+                                                    document.body.appendChild(tempInput);
+                                                    tempInput.select();
+                                                    document.execCommand('copy');
+                                                    document.body.removeChild(tempInput);
+                                                    alert('Kode ' + code + ' berhasil disalin!');
+                                                ">
+                                📋 Salin
+                            </button>
+                            @else
+                            <small>Login untuk gunakan</small>
+                            @endauth
+                        </div>
+                    </div>
+                    <div class="position-absolute" style="bottom: -20px; right: -20px; opacity: 0.1; font-size: 120px;">
+                        🎟️
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
