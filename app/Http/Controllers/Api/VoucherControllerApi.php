@@ -45,9 +45,18 @@ class VoucherControllerApi extends Controller
         }
 
         if (!$voucher->isValidFor($request->total_amount, $request->user()->id)) {
+            $message = 'Syarat voucher tidak terpenuhi (min. belanja Rp ' . number_format($voucher->min_purchase, 0, ',', '.') . ') atau voucher tidak diperuntukkan untuk Anda.';
+            
+            // Note: Since we don't know the categories in this simple check API yet (it usually comes from checkout),
+            // we will just show the generic message, BUT if we want to be proactive:
+            if ($voucher->category_id) {
+                $categoryName = $voucher->category ? $voucher->category->name : 'kategori tertentu';
+                $message .= ' Voucher ini hanya berlaku untuk kategori ' . $categoryName . '.';
+            }
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Syarat voucher tidak terpenuhi (min. belanja Rp ' . number_format($voucher->min_purchase, 0, ',', '.') . ') atau voucher tidak diperuntukkan untuk Anda.'
+                'message' => $message
             ], 400);
         }
 
@@ -60,7 +69,9 @@ class VoucherControllerApi extends Controller
                 'code' => $voucher->code,
                 'discount_amount' => (int) $discount,
                 'min_purchase' => (int) $voucher->min_purchase,
+                'max_discount_amount' => (int) $voucher->max_discount_amount,
                 'discount_type' => $voucher->discount_type,
+                'terms' => $voucher->terms,
             ]
         ]);
     }

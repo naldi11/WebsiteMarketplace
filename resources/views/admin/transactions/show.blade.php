@@ -34,9 +34,9 @@
                 <i class="fas fa-arrow-left mr-2"></i> Kembali
             </a>
             @if($transaction->status == 'completed' || $transaction->status == 'received')
-                <button class="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm">
+                <a href="{{ route('admin.transactions.invoice', $transaction->id) }}" target="_blank" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm inline-flex items-center">
                     <i class="fas fa-print mr-2"></i> Cetak Invoice
-                </button>
+                </a>
             @endif
         </div>
     </div>
@@ -123,6 +123,12 @@
                         <div class="flex justify-between text-gray-600">
                             <span>Biaya Layanan (Platform)</span>
                             <span>Rp {{ number_format($transaction->service_fee, 0, ',', '.') }}</span>
+                        </div>
+                    @endif
+                    @if($transaction->admin_fee > 0)
+                        <div class="flex justify-between text-gray-600">
+                            <span>Biaya Admin (Gateway)</span>
+                            <span>Rp {{ number_format($transaction->admin_fee, 0, ',', '.') }}</span>
                         </div>
                     @endif
                     @if($transaction->discount_total)
@@ -272,8 +278,16 @@
                         <div class="p-3 bg-green-50 text-green-800 text-xs rounded-lg border border-green-100 leading-relaxed italic">
                             Barang sudah diterima buyer. Cek Bukti Penerimaan (Multimedia) sebelum melepas dana <strong>Rp {{ number_format($transaction->seller_amount, 0, ',', '.') }}</strong> ke Seller.
                         </div>
-                        <form action="{{ route('admin.release', $transaction) }}" method="POST">
+                        <form action="{{ route('admin.release', $transaction) }}" method="POST" enctype="multipart/form-data">
                             @csrf
+                            <div class="mb-4">
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Upload Bukti Transfer</label>
+                                <input type="file" name="transfer_proof" accept="image/*,application/pdf" required
+                                    class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 border border-gray-200 rounded-lg">
+                                @error('transfer_proof')
+                                    <p class="text-[10px] text-red-600 font-medium mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
                             <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-green-200 flex items-center justify-center gap-2">
                                 <i class="fas fa-hand-holding-usd"></i> Lepaskan Dana ke Seller
                             </button>

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'shop_name',
         'address',
         'password',
+        'is_suspended',
     ];
 
     /**

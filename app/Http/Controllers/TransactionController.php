@@ -39,7 +39,7 @@ class TransactionController extends Controller
         $groupedItems = $cartItems->groupBy('product.user.shop_name');
 
         $subtotal = $cartItems->sum(function ($item) {
-            return $item->quantity * ($item->product->discount_price && $item->product->discount_price < $item->product->price ? $item->product->discount_price : $item->product->price);
+            return $item->quantity * $item->product->effective_price;
         });
 
 
@@ -54,10 +54,7 @@ class TransactionController extends Controller
                 ->first();
 
             if ($voucher && $voucher->isValidFor($subtotal)) {
-                $discountAmount = $voucher->discount_amount;
-                // Cap discount at subtotal
-                if ($discountAmount > $subtotal)
-                    $discountAmount = $subtotal;
+                $discountAmount = $voucher->calculateDiscount($subtotal);
             } else {
                 // Invalid voucher (expired or min purchase not met), remove from session
                 session()->forget('applied_voucher');
@@ -66,8 +63,9 @@ class TransactionController extends Controller
             }
         }
 
-        // Calculate service fee (10%)
-        $serviceFeePercent = 10;
+        // Calculate service fee dynamically from settings (default 10%)
+        $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
+        $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
         // Discount is applied BEFORE service fee in this logic? 
         // Usually Service Fee is on the FINAL amount or Subtotal?
         // Let's keep Service Fee on Subtotal (Platform fee based on GMV).
@@ -77,6 +75,9 @@ class TransactionController extends Controller
         $totalPrice = ($subtotal - $discountAmount) + $serviceFee;
         if ($totalPrice < 0)
             $totalPrice = 0;
+
+        // Note: Admin Payment Fee will be calculated dynamically on the frontend via JavaScript
+        // and finalized in the backend during storeCart.
 
         // Load saved addresses
         $addresses = auth()->user()->addresses()->latest()->get();
@@ -127,6 +128,9 @@ class TransactionController extends Controller
                 return $item->quantity * $item->product->price;
             });
 
+            // Extract category IDs from cart items
+            $itemCategoryIds = $cartItems->pluck('product.category_id')->unique()->toArray();
+
             // Validate minimum purchase
             if ($subtotal < $voucher->min_purchase) {
                 return response()->json([
@@ -135,21 +139,29 @@ class TransactionController extends Controller
                 ]);
             }
 
-            // Validate usage limit
-            if ($voucher->usage_count >= $voucher->usage_limit) {
-                return response()->json(['success' => false, 'message' => 'Voucher sudah mencapai limit penggunaan.']);
+            if (!$voucher->isValidFor($subtotal, auth()->id(), $itemCategoryIds)) {
+                $message = 'Voucher tidak valid untuk Anda atau sudah melebihi batas penggunaan.';
+                if ($voucher->category_id && !in_array($voucher->category_id, $itemCategoryIds)) {
+                    $categoryName = $voucher->category ? $voucher->category->name : 'kategori tertentu';
+                    $message = 'Voucher ini hanya berlaku untuk produk dalam kategori ' . $categoryName . '.';
+                }
+                return response()->json(['success' => false, 'message' => $message]);
             }
 
-            // Validate: discount cannot exceed subtotal
-            if ($voucher->discount_amount > $subtotal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Diskon voucher (Rp ' . number_format($voucher->discount_amount, 0, ',', '.') . ') lebih besar dari subtotal belanja Anda (Rp ' . number_format($subtotal, 0, ',', '.') . '). Voucher tidak dapat digunakan.'
-                ]);
-            }
+            $discountAmount = $voucher->calculateDiscount($subtotal);
 
-            session(['applied_voucher' => ['code' => $voucher->code]]);
-            return response()->json(['success' => true, 'message' => 'Voucher berhasil digunakan!']);
+            session(['applied_voucher' => [
+                'code' => $voucher->code,
+                'discount' => $discountAmount,
+                'terms' => $voucher->terms
+            ]]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Voucher berhasil digunakan!',
+                'discount' => $discountAmount,
+                'terms' => $voucher->terms
+            ]);
         } catch (\Exception $e) {
             \Log::error('Voucher application error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
@@ -205,7 +217,7 @@ class TransactionController extends Controller
             // --- Voucher Logic ---
             $voucher = null;
             $totalDiscount = 0;
-            $subtotal = $cartItems->sum(fn($item) => $item->quantity * ($item->product->discount_price && $item->product->discount_price < $item->product->price ? $item->product->discount_price : $item->product->price));
+            $subtotal = $cartItems->sum(fn($item) => $item->quantity * $item->product->effective_price);
 
             if ($request->filled('voucher_code')) {
                 $voucher = \App\Models\Voucher::where('code', $request->voucher_code)
@@ -216,18 +228,22 @@ class TransactionController extends Controller
                     return back()->with('voucher_error', 'Kode voucher tidak valid.');
                 }
 
-                if (!$voucher->isValidFor($subtotal)) {
-                    return back()->with('voucher_error', 'Voucher tidak dapat digunakan.');
+                $itemCategoryIds = $cartItems->pluck('product.category_id')->unique()->toArray();
+                if (!$voucher->isValidFor($subtotal, auth()->id(), $itemCategoryIds)) {
+                    $message = 'Voucher tidak dapat digunakan.';
+                    if ($voucher->category_id && !in_array($voucher->category_id, $itemCategoryIds)) {
+                        $categoryName = $voucher->category ? $voucher->category->name : 'kategori tertentu';
+                        $message = 'Voucher ini hanya berlaku untuk kategori ' . $categoryName . '.';
+                    }
+                    return back()->with('voucher_error', $message);
                 }
 
-                $totalDiscount = $voucher->discount_amount;
-                if ($totalDiscount > $subtotal) {
-                    $totalDiscount = $subtotal;
-                }
+                $totalDiscount = $voucher->calculateDiscount($subtotal);
             }
 
-            // Calculate service fee (10%)
-            $serviceFeePercent = 10;
+            // Calculate service fee dynamically
+            $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
+            $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
             $serviceFee = ceil($subtotal * $serviceFeePercent / 100);
 
             // Group items by Seller ID to create separate transactions
@@ -235,7 +251,7 @@ class TransactionController extends Controller
 
             foreach ($itemsBySeller as $sellerId => $items) {
                 // Calculate Proportional Discount for this seller
-                $sellerSubtotal = $items->sum(fn($item) => $item->quantity * ($item->product->discount_price && $item->product->discount_price < $item->product->price ? $item->product->discount_price : $item->product->price));
+                $sellerSubtotal = $items->sum(fn($item) => $item->quantity * $item->product->effective_price);
                 $sellerDiscount = 0;
                 if ($totalDiscount > 0) {
                     $sellerDiscount = floor(($sellerSubtotal / $subtotal) * $totalDiscount);
@@ -243,6 +259,19 @@ class TransactionController extends Controller
 
                 // Proportional service fee
                 $sellerServiceFee = ceil(($sellerSubtotal / $subtotal) * $serviceFee);
+
+                // --- Admin Payment Fee (Gateway) Logic ---
+                $paymentMethodObj = \App\Models\PaymentMethod::where('code', $request->payment_method)->first();
+                $totalAdminFee = 0;
+                if ($paymentMethodObj) {
+                    if ($paymentMethodObj->admin_fee_percent > 0) {
+                        $totalAdminFee += ceil($subtotal * $paymentMethodObj->admin_fee_percent / 100);
+                    }
+                    if ($paymentMethodObj->admin_fee > 0) {
+                        $totalAdminFee += $paymentMethodObj->admin_fee;
+                    }
+                }
+                $sellerAdminFee = ceil(($sellerSubtotal / $subtotal) * $totalAdminFee);
 
                 // --- Shipping Cost Logic ---
                 $sellerShippingCost = 0;
@@ -276,8 +305,8 @@ class TransactionController extends Controller
                 // Seller amount (what seller will receive after service fee)
                 $sellerAmount = $sellerSubtotal - $sellerDiscount;
 
-                // Total buyer pays (subtotal - discount + service fee + shipping)
-                $totalAmount = $sellerAmount + $sellerServiceFee + $sellerShippingCost;
+                // Total buyer pays (subtotal - discount + service fee + shipping + admin fee)
+                $totalAmount = $sellerAmount + $sellerServiceFee + $sellerShippingCost + $sellerAdminFee;
 
                 // 1. Create Transaction Record
                 $transaction = Transaction::create([
@@ -293,7 +322,7 @@ class TransactionController extends Controller
                     'shipping_cost' => $sellerShippingCost,
                     'delivery_type' => $deliveryType,
                     'seller_amount' => $sellerAmount,
-                    'admin_fee' => 0,
+                    'admin_fee' => $sellerAdminFee,
                     'status' => 'waiting_payment',
                 ]);
 
@@ -308,7 +337,7 @@ class TransactionController extends Controller
                         throw new \Exception("Stok untuk {$item->product->name} tidak mencukupi.");
                     }
 
-                    $effectivePrice = $item->product->discount_price && $item->product->discount_price < $item->product->price ? $item->product->discount_price : $item->product->price;
+                    $effectivePrice = $item->product->effective_price;
                     TransactionDetail::create([
                         'transaction_id' => $transaction->id,
                         'product_id' => $item->product_id,

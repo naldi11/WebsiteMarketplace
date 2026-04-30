@@ -7,6 +7,8 @@
     <title>Admin Panel - Techno Market</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -18,11 +20,12 @@
     <div class="flex min-h-screen">
         <!-- Sidebar -->
         <aside class="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed h-full z-10">
-            <div class="h-16 flex items-center px-6 border-b border-gray-100">
+            <div class="h-auto flex flex-col justify-center px-6 py-3 border-b border-gray-100">
                 <span
                     class="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 tracking-tighter">
-                    TechnoAdmin
+                    Administrator
                 </span>
+                <span class="text-xs text-gray-400 font-medium border-b border-gray-300 pb-1 mt-0.5">Market Barang Bekas</span>
             </div>
 
             <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
@@ -35,6 +38,13 @@
                     </svg>
                     Dashboard
                 </a>
+                <a href="{{ route('admin.users') }}"
+                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.users*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    Manajemen User
+                </a>
                 <a href="{{ route('admin.transactions') }}"
                     class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.transactions') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,6 +53,15 @@
                         </path>
                     </svg>
                     Transaksi
+                </a>
+                <a href="{{ route('admin.reports') }}"
+                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.reports*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                    Laporan Masalah
                 </a>
                 <a href="{{ route('admin.vouchers') }}"
                     class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.vouchers') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
@@ -81,6 +100,14 @@
                         </path>
                     </svg>
                     Saldo
+                </a>
+
+                <a href="{{ route('admin.ad_banners') }}"
+                    class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.ad_banners') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Banner Iklan
                 </a>
 
                 <a href="{{ route('admin.settings') }}"
@@ -135,7 +162,10 @@
         <main class="flex-1 md:ml-64 min-h-screen">
             <!-- Mobile Header -->
             <div class="md:hidden h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4">
-                <span class="font-bold text-lg">TechnoAdmin</span>
+                <div class="flex flex-col">
+                    <span class="font-bold text-lg">Administrator</span>
+                    <span class="text-xs text-gray-400 font-medium border-b border-gray-300 pb-1">Market Barang Bekas</span>
+                </div>
                 <button class="text-gray-500">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -144,7 +174,7 @@
                 </button>
             </div>
 
-            <div class="px-4 py-6 md:px-8 md:py-8">
+            <div class="px-4 pt-2 pb-6 md:px-8 md:pt-4 md:pb-8">
                 @if(session('success'))
                     <div
                         class="mb-6 bg-green-50 text-green-700 px-4 py-3 rounded-lg border border-green-200 text-sm flex items-center gap-2">

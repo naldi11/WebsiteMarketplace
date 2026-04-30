@@ -78,14 +78,13 @@
                 </div>
 
                 <div>
-                    <label for="discount_price" class="block text-sm font-medium text-gray-700">Harga Diskon (Rp) <span
+                    <label for="discount_price" class="block text-sm font-medium text-gray-700">Jumlah Diskon (Rp) <span
                             class="text-gray-400 font-normal">- Opsional</span></label>
                     <input type="number" name="discount_price" id="discount_price"
                         value="{{ old('discount_price', $product->discount_price) }}" min="0"
                         class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                         {{ $product->hasDiscount() && old('remove_discount') ? 'disabled' : '' }}>
-                    <p class="text-xs text-gray-500 mt-1">Kosongkan jika tidak ada diskon. Harga diskon harus lebih rendah
-                        dari harga normal.</p>
+                    <p class="text-xs text-gray-500 mt-1">Kosongkan jika tidak ada diskon. Jumlah diskon tidak boleh lebih dari harga normal produk.</p>
                     @error('discount_price')
                         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                     @enderror

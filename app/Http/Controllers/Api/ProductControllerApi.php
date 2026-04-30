@@ -17,17 +17,18 @@ class ProductControllerApi extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('category', 'images', 'user');
+        $query = Product::with('category', 'images', 'user')->withAvgRating();
 
         // Apply general filters
         $query->filter($request->only('search', 'category'));
 
         // Apply Haversine Distance Sorting if lat/lng are provided
         if ($request->has('latitude') && $request->has('longitude')) {
-            $query->nearby($request->latitude, $request->longitude);
+            $query->nearby($request->latitude, $request->longitude)
+                  ->orderByRating('desc');
         } else {
-            // Default latest
-            $query->latest();
+            // Priority: Rating, then latest
+            $query->orderByRating('desc')->latest();
         }
 
         $products = $query->paginate(10);

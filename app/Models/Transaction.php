@@ -22,6 +22,7 @@ class Transaction extends Model
         'seller_amount',
         'status',
         'payment_proof',
+        'transfer_proof',
         'shipping_proof',
         'courier',
         'tracking_number',
@@ -121,5 +122,10 @@ class Transaction extends Model
             $total += $item->price * $item->quantity;
         }
         return $total;
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(Report::class);
     }
 }

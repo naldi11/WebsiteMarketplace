@@ -24,12 +24,19 @@ class AuthControllerApi extends Controller
 
         $request->merge(['phone' => $phoneInput]);
 
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'required|string|min:10|max:16|unique:users,phone',
             'password' => 'required|string|min:8|confirmed',
-        ]);
+        ];
+
+        if ($request->role === 'seller') {
+            $rules['shop_name'] = 'required|string|max:255';
+            $rules['address'] = 'required|string|max:500';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -43,7 +50,9 @@ class AuthControllerApi extends Controller
             'email' => $request->email,
             'phone' => $phoneInput,
             'password' => Hash::make($request->password),
-            'role' => 'user',
+            'role' => $request->role === 'seller' ? 'seller' : 'buyer',
+            'shop_name' => $request->role === 'seller' ? $request->shop_name : null,
+            'address' => $request->role === 'seller' ? $request->address : null,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;

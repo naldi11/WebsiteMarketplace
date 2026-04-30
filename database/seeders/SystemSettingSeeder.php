@@ -37,5 +37,13 @@ class SystemSettingSeeder extends Seeder
                     "Data pribadi Anda tidak akan dibagikan kepada pihak ketiga tanpa persetujuan Anda, kecuali untuk keperluan proses pengiriman barang."
             ]
         );
+
+        \App\Models\SystemSetting::updateOrCreate(
+            ['key' => 'admin_whatsapp'],
+            [
+                'description' => 'Nomor WhatsApp Admin (untuk bantuan/laporan)',
+                'value' => '628123456789'
+            ]
+        );
     }
 }

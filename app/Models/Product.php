@@ -66,7 +66,7 @@ class Product extends Model
      */
     public function getEffectivePriceAttribute()
     {
-        return $this->hasDiscount() ? $this->discount_price : $this->price;
+        return $this->hasDiscount() ? ($this->price - $this->discount_price) : $this->price;
     }
 
     /**
@@ -76,7 +76,7 @@ class Product extends Model
     {
         if (!$this->hasDiscount())
             return 0;
-        return round((($this->price - $this->discount_price) / $this->price) * 100);
+        return round(($this->discount_price / $this->price) * 100);
     }
 
     public function scopeFilter($query, array $filters)
@@ -97,6 +97,16 @@ class Product extends Model
         });
     }
 
+    public function scopeWithAvgRating($query)
+    {
+        return $query->withAvg('reviews', 'rating');
+    }
+
+    public function scopeOrderByRating($query, $direction = 'desc')
+    {
+        return $query->orderBy('reviews_avg_rating', $direction);
+    }
+
     /**
      * Scope a query to sort products by distance from a given latitude and longitude.
      */
@@ -109,7 +119,7 @@ class Product extends Model
                      + sin(radians($latitude)) 
                      * sin(radians(latitude))))";
 
-        return $query->selectRaw("*, {$haversine} AS distance")
+        return $query->selectRaw("products.*, {$haversine} AS distance")
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->orderBy('distance', 'asc');

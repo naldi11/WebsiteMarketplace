@@ -128,13 +128,12 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="discount_price" class="form-label">Harga Diskon (Rp) <span
+                                    <label for="discount_price" class="form-label">Jumlah Diskon (Rp) <span
                                             class="text-muted fw-normal">- Opsional</span></label>
                                     <input type="number" class="form-control @error('discount_price') is-invalid @enderror"
                                         id="discount_price" name="discount_price" value="{{ old('discount_price') }}"
                                         min="0">
-                                    <small class="text-muted">Kosongkan jika tidak ada diskon. Harga diskon harus lebih
-                                        rendah dari harga normal.</small>
+                                    <small class="text-muted">Kosongkan jika tidak ada diskon. Jumlah diskon tidak boleh lebih dari harga normal produk.</small>
                                     @error('discount_price')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

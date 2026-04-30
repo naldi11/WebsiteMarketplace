@@ -105,7 +105,9 @@ class TransactionControllerApi extends Controller
             }
 
             $totalPrice = $product->effective_price * $request->quantity;
-            $serviceFee = 2000; // Fixed flat fee for platform
+            $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
+            $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
+            $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
             $discount = 0;
             $appliedVoucher = null;
 
@@ -120,7 +122,17 @@ class TransactionControllerApi extends Controller
                 }
             }
 
-            $grandTotal = max(0, $totalPrice + $serviceFee - $discount);
+            $adminFee = 0;
+            if ($paymentMethod) {
+                if ($paymentMethod->admin_fee_percent > 0) {
+                    $adminFee += ceil($totalPrice * $paymentMethod->admin_fee_percent / 100);
+                }
+                if ($paymentMethod->admin_fee > 0) {
+                    $adminFee += $paymentMethod->admin_fee;
+                }
+            }
+
+            $grandTotal = max(0, $totalPrice + $serviceFee + $adminFee - $discount);
 
             $transaction = Transaction::create([
                 'buyer_id' => $userId,
@@ -128,6 +140,7 @@ class TransactionControllerApi extends Controller
                 'total_amount' => $grandTotal,
                 'seller_amount' => $totalPrice,
                 'service_fee' => $serviceFee,
+                'admin_fee' => $adminFee,
                 'status' => 'waiting_payment',
                 'payment_method' => $paymentMethod->name,
                 'payment_method_code' => $paymentMethod->code,
@@ -207,7 +220,9 @@ class TransactionControllerApi extends Controller
                 $totalPrice += $cart->product->effective_price * $cart->quantity;
             }
 
-            $serviceFee = 2000;
+            $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
+            $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
+            $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
             $discount = 0;
             $appliedVoucher = null;
 
@@ -222,7 +237,17 @@ class TransactionControllerApi extends Controller
                 }
             }
 
-            $grandTotal = max(0, $totalPrice + $serviceFee - $discount);
+            $adminFee = 0;
+            if ($paymentMethod) {
+                if ($paymentMethod->admin_fee_percent > 0) {
+                    $adminFee += ceil($totalPrice * $paymentMethod->admin_fee_percent / 100);
+                }
+                if ($paymentMethod->admin_fee > 0) {
+                    $adminFee += $paymentMethod->admin_fee;
+                }
+            }
+
+            $grandTotal = max(0, $totalPrice + $serviceFee + $adminFee - $discount);
 
             $transaction = Transaction::create([
                 'buyer_id' => $userId,
@@ -231,6 +256,7 @@ class TransactionControllerApi extends Controller
                 'total_amount' => $grandTotal,
                 'seller_amount' => $totalPrice,
                 'service_fee' => $serviceFee,
+                'admin_fee' => $adminFee,
                 'status' => 'waiting_payment',
                 'payment_method' => $paymentMethod->name,
                 'payment_method_code' => $paymentMethod->code,
@@ -327,55 +353,70 @@ class TransactionControllerApi extends Controller
             return response()->json(['status' => 'error', 'message' => 'Pilih produk atau keranjang.'], 400);
         }
 
-        $serviceFee = 2000;
+        $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
+        $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
+        $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
 
         $shippingCost = 0;
-        if ($request->delivery_type === 'courier' && $request->filled('user_address_id')) {
-            $buyerAddress = \App\Models\UserAddress::find($request->user_address_id);
+        $distanceKm = null;
+        if ($request->delivery_type === 'courier') {
+            $buyerAddress = $request->filled('user_address_id') ? \App\Models\UserAddress::find($request->user_address_id) : null;
             $seller = \App\Models\User::find($sellerId);
             $sellerAddress = $seller ? $seller->addresses()->where('is_default', true)->first() : null;
 
-            $sLat = $sellerAddress ? $sellerAddress->latitude : ($items[0]['product']->latitude ?? 0);
-            $sLon = $sellerAddress ? $sellerAddress->longitude : ($items[0]['product']->longitude ?? 0);
+            // Seller coordinates: prefer seller's default address, fallback to product coordinates
+            $sLat = $sellerAddress && $sellerAddress->latitude ? $sellerAddress->latitude : ($items[0]['product']->latitude ?? 0);
+            $sLon = $sellerAddress && $sellerAddress->longitude ? $sellerAddress->longitude : ($items[0]['product']->longitude ?? 0);
 
-            if ($buyerAddress && $buyerAddress->latitude && $buyerAddress->longitude && $sLat && $sLon) {
-                $distance = $this->calculateDistance($sLat, $sLon, $buyerAddress->latitude, $buyerAddress->longitude);
+            // Buyer coordinates: prefer saved address, fallback to device GPS from request
+            $bLat = ($buyerAddress && $buyerAddress->latitude) ? $buyerAddress->latitude : ($request->input('buyer_latitude', 0));
+            $bLon = ($buyerAddress && $buyerAddress->longitude) ? $buyerAddress->longitude : ($request->input('buyer_longitude', 0));
 
-                $baseCost = 10000;
-                if ($distance > 5) {
-                    $extraDistance = ceil($distance - 5);
-                    $baseCost += ($extraDistance * 3000);
-                }
+            if ($sLat && $sLon && $bLat && $bLon) {
+                $distanceKm = $this->calculateDistance($sLat, $sLon, $bLat, $bLon);
 
-                $multiplier = 1;
                 $totalWeight = array_reduce($items, function ($carry, $item) {
                     return $carry + ($item['product']->weight * $item['quantity']);
                 }, 0);
-                $weightKg = ceil($totalWeight / 1000);
-                if ($weightKg > 25) {
-                    $multiplier = ceil($weightKg / 25);
-                }
 
-                $shippingCost = $baseCost * $multiplier;
+                $shippingCost = $this->calculateShippingCost($distanceKm, $totalWeight);
             } else {
-                $shippingCost = 15000; // Flat fallback
+                $shippingCost = 15000; // Flat fallback only if no coordinates at all
             }
-        } else if ($request->delivery_type === 'courier') {
-            $shippingCost = 15000; // Fallback for courier without address
         }
         $discount = 0;
         $appliedVoucher = null;
 
+        // Extract category IDs from items
+        $itemCategoryIds = collect($items)->pluck('product.category_id')->unique()->toArray();
+
         if ($request->filled('voucher_code')) {
             $voucher = Voucher::where('code', strtoupper($request->voucher_code))->where('is_active', true)->first();
-            if ($voucher && $voucher->isValidFor($totalPrice, $userId)) {
+            if ($voucher && $voucher->isValidFor($totalPrice, $userId, $itemCategoryIds)) {
                 $discount = $voucher->calculateDiscount($totalPrice);
                 $appliedVoucher = $voucher;
             }
         }
 
-        $serviceFee = 2000; // Flat fee for platform consistency
-        $grandTotal = max(0, $totalPrice + $serviceFee + $shippingCost - $discount);
+        $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
+        $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
+        $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
+        
+        $adminFee = 0;
+        // Not passing payment_method for preview usually, but if provided, calculate it. 
+        if ($request->filled('payment_method_id')) {
+            $pm = PaymentMethod::find($request->payment_method_id);
+            if ($pm) {
+                 if ($pm->admin_fee_percent > 0) {
+                     $adminFee += ceil($totalPrice * $pm->admin_fee_percent / 100);
+                 }
+                 if ($pm->admin_fee > 0) {
+                     $adminFee += $pm->admin_fee;
+                 }
+            }
+        }
+
+        $grandTotal = max(0, $totalPrice + $serviceFee + $shippingCost + $adminFee - $discount);
 
         return response()->json([
             'status' => 'success',
@@ -384,10 +425,12 @@ class TransactionControllerApi extends Controller
                 'subtotal_product' => $totalPrice,
                 'service_fee' => $serviceFee,
                 'shipping_cost' => $shippingCost,
+                'admin_fee' => $adminFee,
                 'discount' => $discount,
                 'grand_total' => $grandTotal,
                 'seller_id' => $sellerId,
-                'voucher' => $appliedVoucher
+                'voucher' => $appliedVoucher,
+                'distance_km' => $distanceKm ? round($distanceKm, 2) : null,
             ]
         ]);
     }
@@ -445,30 +488,29 @@ class TransactionControllerApi extends Controller
                 throw new \Exception('Pilih produk atau keranjang.');
             }
 
-            $serviceFee = 2000;
+            $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
+            $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
+            $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
 
             $shippingCost = 0;
             if ($request->delivery_type === 'courier') {
                 $seller = \App\Models\User::find($sellerId);
                 $sellerAddress = $seller ? $seller->addresses()->where('is_default', true)->first() : null;
-                $sLat = $sellerAddress ? $sellerAddress->latitude : ($itemsToCheckout[0]['product']->latitude ?? 0);
-                $sLon = $sellerAddress ? $sellerAddress->longitude : ($itemsToCheckout[0]['product']->longitude ?? 0);
+                $sLat = $sellerAddress && $sellerAddress->latitude ? $sellerAddress->latitude : ($itemsToCheckout[0]['product']->latitude ?? 0);
+                $sLon = $sellerAddress && $sellerAddress->longitude ? $sellerAddress->longitude : ($itemsToCheckout[0]['product']->longitude ?? 0);
 
-                if ($address->latitude && $address->longitude && $sLat && $sLon) {
-                    $distance = $this->calculateDistance($sLat, $sLon, $address->latitude, $address->longitude);
-                    $baseCost = 10000;
-                    if ($distance > 5) {
-                        $baseCost += (ceil($distance - 5) * 3000);
-                    }
-                    $multiplier = 1;
+                // Buyer coordinates: prefer saved address, fallback to device GPS
+                $bLat = $address->latitude ? $address->latitude : ($request->input('buyer_latitude', 0));
+                $bLon = $address->longitude ? $address->longitude : ($request->input('buyer_longitude', 0));
+
+                if ($sLat && $sLon && $bLat && $bLon) {
+                    $distance = $this->calculateDistance($sLat, $sLon, $bLat, $bLon);
+
                     $totalWeight = array_reduce($itemsToCheckout, function ($carry, $item) {
                         return $carry + ($item['product']->weight * $item['quantity']);
                     }, 0);
-                    $weightKg = ceil($totalWeight / 1000);
-                    if ($weightKg > 25) {
-                        $multiplier = ceil($weightKg / 25);
-                    }
-                    $shippingCost = $baseCost * $multiplier;
+
+                    $shippingCost = $this->calculateShippingCost($distance, $totalWeight);
                 } else {
                     $shippingCost = 15000;
                 }
@@ -476,16 +518,29 @@ class TransactionControllerApi extends Controller
             $discount = 0;
             $appliedVoucher = null;
 
+            // Extract category IDs for validation in confirmation
+            $itemCategoryIds = collect($itemsToCheckout)->pluck('product.category_id')->unique()->toArray();
+
             if ($request->filled('voucher_code')) {
                 $voucher = Voucher::where('code', strtoupper($request->voucher_code))->where('is_active', true)->first();
-                if ($voucher && $voucher->isValidFor($totalPrice, $userId)) {
+                if ($voucher && $voucher->isValidFor($totalPrice, $userId, $itemCategoryIds)) {
                     $discount = $voucher->calculateDiscount($totalPrice);
                     $appliedVoucher = $voucher;
                     $voucher->increment('usage_count');
                 }
             }
 
-            $grandTotal = max(0, $totalPrice + $serviceFee + $shippingCost - $discount);
+            $adminFee = 0;
+            if ($paymentMethod) {
+                if ($paymentMethod->admin_fee_percent > 0) {
+                     $adminFee += ceil($totalPrice * $paymentMethod->admin_fee_percent / 100);
+                }
+                if ($paymentMethod->admin_fee > 0) {
+                     $adminFee += $paymentMethod->admin_fee;
+                }
+            }
+
+            $grandTotal = max(0, $totalPrice + $serviceFee + $shippingCost + $adminFee - $discount);
 
             $transaction = Transaction::create([
                 'buyer_id' => $userId,
@@ -494,6 +549,7 @@ class TransactionControllerApi extends Controller
                 'seller_amount' => $totalPrice, // Without fee & shipping
                 'service_fee' => $serviceFee,
                 'shipping_cost' => $shippingCost,
+                'admin_fee' => $adminFee,
                 'delivery_type' => $request->delivery_type,
                 'status' => 'waiting_payment',
                 'expires_at' => now()->addHours(24),
@@ -644,6 +700,14 @@ class TransactionControllerApi extends Controller
 
         if ($transaction->seller_id !== $request->user()->id && $request->user()->role !== 'admin') {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        // PREVENT SELLER FROM BYPASSING ADMIN VERIFICATION
+        if ($request->user()->role !== 'admin' && in_array($transaction->status, ['waiting_payment', 'pending'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Anda tidak dapat mengubah status pesanan ini sampai pembayaran diverifikasi oleh Admin.'
+            ], 403);
         }
 
         $request->validate([
@@ -841,5 +905,46 @@ class TransactionControllerApi extends Controller
             sin($dLon / 2) * sin($dLon / 2);
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         return $earthRadius * $c;
+    }
+
+    /**
+     * Calculate shipping cost using realistic tiered pricing (Indonesian courier style)
+     * Base cost by distance + per-kg rate that scales with distance
+     * 
+     * @param float $distanceKm Distance in kilometers
+     * @param int $totalWeightGram Total weight in grams
+     * @return int Shipping cost in Rupiah
+     */
+    private function calculateShippingCost($distanceKm, $totalWeightGram)
+    {
+        // Distance tiers: [baseCost, perKgRate]
+        if ($distanceKm <= 5) {
+            $baseCost = 8000;       // Sangat dekat (sekitar kampus)
+            $perKgRate = 2000;
+        } elseif ($distanceKm <= 15) {
+            $baseCost = 12000;      // Dalam kota
+            $perKgRate = 2500;
+        } elseif ($distanceKm <= 50) {
+            $baseCost = 18000;      // Antar kecamatan
+            $perKgRate = 3000;
+        } elseif ($distanceKm <= 150) {
+            $baseCost = 25000;      // Antar kota dalam provinsi
+            $perKgRate = 4000;
+        } elseif ($distanceKm <= 500) {
+            $baseCost = 35000;      // Antar provinsi dekat
+            $perKgRate = 6000;
+        } elseif ($distanceKm <= 1000) {
+            $baseCost = 50000;      // Antar provinsi jauh
+            $perKgRate = 8000;
+        } else {
+            $baseCost = 65000;      // Antar pulau (mis. Medan - Jakarta)
+            $perKgRate = 10000;
+        }
+
+        // Hitung berat (minimal 1 kg). Base cost sudah termasuk 1 kg pertama.
+        $weightKg = max(1, ceil($totalWeightGram / 1000));
+        $weightSurcharge = ($weightKg > 1) ? ($weightKg - 1) * $perKgRate : 0;
+
+        return $baseCost + $weightSurcharge;
     }
 }

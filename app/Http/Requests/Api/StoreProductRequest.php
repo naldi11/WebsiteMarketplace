@@ -26,7 +26,7 @@ class StoreProductRequest extends FormRequest
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'discount_price' => 'nullable|numeric|min:0',
+            'discount_price' => 'nullable|numeric|min:0|lte:price',
             'stock' => 'required|integer|min:0',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',

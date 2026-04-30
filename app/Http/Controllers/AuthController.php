@@ -91,6 +91,14 @@ class AuthController extends Controller
         }
 
         if (Auth::attempt($credentials)) {
+            // Check if user is suspended
+            if (auth()->user()->is_suspended) {
+                Auth::logout();
+                return back()->withErrors([
+                    'login' => 'Akun Anda telah ditangguhkan/disuspend oleh Admin. Silakan hubungi CS.',
+                ])->onlyInput('login');
+            }
+
             $request->session()->regenerate();
 
             // Direct Redirect for Admin

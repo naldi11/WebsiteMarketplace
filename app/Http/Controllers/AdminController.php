@@ -15,33 +15,214 @@ class AdminController extends Controller
         }
     }
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $this->checkAdmin();
+        
+        $period = $request->query('period', 'all');
+        $startDate = null;
+        $endDate = null;
+        
+        if ($period === 'today') {
+            $startDate = now()->startOfDay();
+            $endDate = now()->endOfDay();
+        } elseif ($period === 'week') {
+            $startDate = now()->startOfWeek();
+            $endDate = now()->endOfWeek();
+        } elseif ($period === 'month') {
+            $startDate = now()->startOfMonth();
+            $endDate = now()->endOfMonth();
+        } elseif ($period === 'year') {
+            $startDate = now()->startOfYear();
+            $endDate = now()->endOfYear();
+        }
+
+        // Apply period filter to queries
+        $transactionQuery = Transaction::query();
+        $userQuery = User::where('role', '!=', 'admin');
+        $productQuery = \App\Models\Product::query();
+        
+        if ($startDate && $endDate) {
+            $transactionQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $userQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $productQuery->whereBetween('created_at', [$startDate, $endDate]);
+        }
 
         $stats = [
-            'total_sales' => Transaction::where('status', 'completed')->sum('total_amount'),
-            'total_users' => User::count(),
-            'pending_transactions' => Transaction::where('status', 'pending')->count(),
-            'active_products' => \App\Models\Product::count(),
+            'total_sales' => (clone $transactionQuery)->where('status', 'completed')->sum('total_amount'),
+            'platform_profit' => (clone $transactionQuery)->where('status', 'completed')->sum('service_fee') + (clone $transactionQuery)->where('status', 'completed')->sum('admin_fee'),
+            'total_users' => (clone $userQuery)->count(), 
+            'escrow_funds' => \App\Models\SellerBalance::sum('available_balance') + \App\Models\SellerBalance::sum('pending_balance'),
         ];
 
-        // Recent Transactions
-        $recentTransactions = Transaction::with(['buyer', 'items.product'])->latest()->take(5)->get();
+        // Composition of Transaction Statuses
+        $orderStatus = [
+            'completed' => (clone $transactionQuery)->where('status', 'completed')->count(),
+            'pending' => (clone $transactionQuery)->whereIn('status', ['pending', 'waiting_payment', 'processing', 'packaging', 'ready_to_ship'])->count(),
+            'cancelled' => (clone $transactionQuery)->where('status', 'cancelled')->count(),
+        ];
 
-        // Top Selling Products
+        // Top Sellers
+        $topSellers = User::whereHas('sellerTransactions', function($q) {
+                // To keep it simple, fetch top sellers regardless of period for the leaderboard
+                $q->where('status', 'completed');
+            })
+            ->withCount(['sellerTransactions as completed_sales' => function ($q) {
+                $q->where('status', 'completed');
+            }])
+            ->withSum(['sellerTransactions as total_earnings' => function ($q) {
+                $q->where('status', 'completed');
+            }], 'seller_amount')
+            ->orderByDesc('total_earnings')
+            ->take(5)
+            ->get();
+
+        // Top Categories
+        $topCategories = \App\Models\Category::withCount(['products as ordered_count' => function ($q) use ($startDate, $endDate) {
+            $q->whereHas('transactionDetails.transaction', function ($txQuery) use ($startDate, $endDate) {
+                $txQuery->where('status', 'completed');
+                if ($startDate && $endDate) {
+                    $txQuery->whereBetween('created_at', [$startDate, $endDate]);
+                }
+            });
+        }])->orderByDesc('ordered_count')->take(5)->get();
+
+        // Recent Transactions
+        $recentTransactions = (clone $transactionQuery)->with(['buyer', 'items.product'])->latest()->take(5)->get();
+
+        // Top Selling Products based on period
         $topProducts = \App\Models\Product::withCount([
-            'transactionDetails as total_sold' => function ($query) {
-                $query->whereHas('transaction', function ($q) {
+            'transactionDetails as total_sold' => function ($query) use ($startDate, $endDate) {
+                $query->whereHas('transaction', function ($q) use ($startDate, $endDate) {
                     $q->where('status', 'completed');
+                    if ($startDate && $endDate) {
+                        $q->whereBetween('created_at', [$startDate, $endDate]);
+                    }
                 });
             }
         ])->orderByDesc('total_sold')->take(5)->get();
 
-        // Low Stock Alerts
+        // Low Stock Alerts (Absolute)
         $lowStockProducts = \App\Models\Product::where('stock', '<', 5)->take(5)->get();
 
-        return view('admin.dashboard', compact('stats', 'recentTransactions', 'topProducts', 'lowStockProducts'));
+        // Users Segmentation
+        $sellers = (clone $userQuery)->whereHas('products')->latest()->take(50)->get();
+        $buyers = (clone $userQuery)->whereDoesntHave('products')->latest()->take(50)->get();
+
+        // Chart Data
+        $chartLabels = [];
+        $chartSales = [];
+        $chartProfit = [];
+        
+        $chartQuery = (clone $transactionQuery)->where('status', 'completed');
+
+        if ($period === 'today') {
+            $records = $chartQuery->selectRaw('HOUR(created_at) as time_key, SUM(total_amount) as sales, SUM(service_fee) as profit, SUM(admin_fee) as other_income')
+                ->groupBy('time_key')->get()->keyBy('time_key');
+            for ($i = 0; $i < 24; $i++) {
+                $chartLabels[] = sprintf('%02d:00', $i);
+                $chartSales[] = isset($records[$i]) ? $records[$i]->sales : 0;
+                $chartProfit[] = isset($records[$i]) ? $records[$i]->profit : 0;
+                $chartOther[] = isset($records[$i]) ? $records[$i]->other_income : 0;
+            }
+        } elseif ($period === 'week') {
+            $records = $chartQuery->selectRaw('DATE(created_at) as time_key, SUM(total_amount) as sales, SUM(service_fee) as profit, SUM(admin_fee) as other_income')
+                ->groupBy('time_key')->get()->keyBy('time_key');
+            $start = clone $startDate;
+            while ($start <= $endDate) {
+                $dateString = $start->format('Y-m-d');
+                $chartLabels[] = $start->translatedFormat('D');
+                $chartSales[] = isset($records[$dateString]) ? $records[$dateString]->sales : 0;
+                $chartProfit[] = isset($records[$dateString]) ? $records[$dateString]->profit : 0;
+                $chartOther[] = isset($records[$dateString]) ? $records[$dateString]->other_income : 0;
+                $start->addDay();
+            }
+        } elseif ($period === 'month') {
+            $records = $chartQuery->selectRaw('DATE(created_at) as time_key, SUM(total_amount) as sales, SUM(service_fee) as profit, SUM(admin_fee) as other_income')
+                ->groupBy('time_key')->get()->keyBy('time_key');
+            $start = clone $startDate;
+            while ($start <= $endDate) {
+                $dateString = $start->format('Y-m-d');
+                $chartLabels[] = $start->format('d');
+                $chartSales[] = isset($records[$dateString]) ? $records[$dateString]->sales : 0;
+                $chartProfit[] = isset($records[$dateString]) ? $records[$dateString]->profit : 0;
+                $chartOther[] = isset($records[$dateString]) ? $records[$dateString]->other_income : 0;
+                $start->addDay();
+            }
+        } else {
+            $q = $chartQuery;
+            if ($period === 'all') {
+                $q->whereYear('created_at', now()->year);
+            }
+            $records = $q->selectRaw('MONTH(created_at) as time_key, SUM(total_amount) as sales, SUM(service_fee) as profit, SUM(admin_fee) as other_income')
+                ->groupBy('time_key')->get()->keyBy('time_key');
+            $months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            for ($i = 1; $i <= 12; $i++) {
+                $chartLabels[] = $months[$i - 1];
+                $chartSales[] = isset($records[$i]) ? $records[$i]->sales : 0;
+                $chartProfit[] = isset($records[$i]) ? $records[$i]->profit : 0;
+                $chartOther[] = isset($records[$i]) ? $records[$i]->other_income : 0;
+            }
+        }
+
+        $chartData = [
+            'labels' => $chartLabels,
+            'sales' => $chartSales,
+            'profit' => $chartProfit,
+            'other' => $chartOther ?? [],
+        ];
+
+        return view('admin.dashboard', compact('stats', 'recentTransactions', 'topProducts', 'lowStockProducts', 'topSellers', 'topCategories', 'orderStatus', 'chartData', 'period'));
+    }
+
+    public function users(Request $request)
+    {
+        $this->checkAdmin();
+        $tab = $request->query('tab', 'all');
+
+        $query = User::where('role', '!=', 'admin');
+
+        if ($tab === 'sellers') {
+            $query->whereHas('products');
+        } elseif ($tab === 'buyers') {
+            $query->whereDoesntHave('products');
+        } elseif ($tab === 'suspended') {
+            $query->where('is_suspended', true);
+        }
+
+        $users = $query->latest()->paginate(20);
+
+        return view('admin.users', compact('users', 'tab'));
+    }
+
+    public function toggleSuspendUser(Request $request, $id)
+    {
+        $this->checkAdmin();
+        $user = User::findOrFail($id);
+        
+        if ($user->id === auth()->id() || $user->role === 'admin') {
+            return back()->with('error', 'Admin tidak dapat disuspend.');
+        }
+
+        $user->is_suspended = !$user->is_suspended;
+        $user->save();
+
+        $action = $user->is_suspended ? 'ditangguhkan' : 'diaktifkan kembali';
+        return back()->with('success', "User {$user->name} berhasil $action.");
+    }
+
+    public function deleteUser($id)
+    {
+        $this->checkAdmin();
+        $user = User::findOrFail($id);
+
+        if ($user->id === auth()->id() || $user->role === 'admin') {
+            return back()->with('error', 'Admin tidak dapat dihapus.');
+        }
+
+        $user->delete();
+
+        return back()->with('success', 'User berhasil dihapus.');
     }
 
     public function transactions(Request $request)
@@ -136,9 +317,17 @@ class AdminController extends Controller
         return back()->with('success', 'Pembayaran ditolak. Pembeli akan menerima notifikasi untuk mengunggah bukti baru.');
     }
 
-    public function releaseFunds(Transaction $transaction)
+    public function releaseFunds(Request $request, Transaction $transaction)
     {
         $this->checkAdmin();
+
+        $request->validate([
+            'transfer_proof' => 'required|file|mimes:jpeg,png,jpg,pdf|max:2048'
+        ], [
+            'transfer_proof.required' => 'Bukti transfer wajib diunggah.',
+            'transfer_proof.mimes' => 'Bukti transfer harus berupa gambar (JPEG/PNG) atau PDF.',
+            'transfer_proof.max' => 'Ukuran file maksimal 2MB.',
+        ]);
 
         // Only allow release for received status (completed means already released)
         if ($transaction->status !== 'received') {
@@ -190,9 +379,13 @@ class AdminController extends Controller
                 'description' => 'Biaya layanan dari transaksi #' . $transaction->id,
             ]);
 
+            // Upload transfer proof
+            $transferProofPath = $request->file('transfer_proof')->store('transfer_proofs', 'public');
+
             // Update transaction
             $transaction->update([
                 'status' => 'completed',
+                'transfer_proof' => $transferProofPath,
             ]);
 
             // Add tracking log
@@ -238,7 +431,10 @@ class AdminController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        \App\Models\PaymentMethod::create($request->all());
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        \App\Models\PaymentMethod::create($data);
         return back()->with('success', 'Metode pembayaran berhasil ditambahkan!');
     }
 
@@ -258,7 +454,10 @@ class AdminController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        $paymentMethod->update($request->all());
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        $paymentMethod->update($data);
         return back()->with('success', 'Metode pembayaran berhasil diperbarui!');
     }
 
@@ -273,7 +472,8 @@ class AdminController extends Controller
     {
         $this->checkAdmin();
         $vouchers = \App\Models\Voucher::latest()->get();
-        return view('admin.vouchers', compact('vouchers'));
+        $categories = \App\Models\Category::all();
+        return view('admin.vouchers', compact('vouchers', 'categories'));
     }
 
     public function storeVoucher(Request $request)
@@ -287,10 +487,39 @@ class AdminController extends Controller
             'usage_limit' => 'required|integer',
             'min_purchase' => 'nullable|numeric',
             'target_user_id' => 'nullable|exists:users,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'terms' => 'nullable|string',
         ]);
 
         \App\Models\Voucher::create($request->all());
         return back()->with('success', 'Voucher dibuat!');
+    }
+
+    public function updateVoucher(Request $request, \App\Models\Voucher $voucher)
+    {
+        $this->checkAdmin();
+        $request->validate([
+            'code' => 'required|unique:vouchers,code,' . $voucher->id,
+            'discount_type' => 'required|in:fixed,percent',
+            'discount_amount' => 'required|numeric',
+            'max_discount_amount' => 'nullable|numeric',
+            'usage_limit' => 'required|integer',
+            'min_purchase' => 'nullable|numeric',
+            'target_user_id' => 'nullable|exists:users,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'is_active' => 'required|boolean',
+            'terms' => 'nullable|string',
+        ]);
+
+        $voucher->update($request->all());
+        return back()->with('success', 'Voucher berhasil diperbarui!');
+    }
+
+    public function destroyVoucher(\App\Models\Voucher $voucher)
+    {
+        $this->checkAdmin();
+        $voucher->delete();
+        return back()->with('success', 'Voucher berhasil dihapus!');
     }
 
     // Category Management
@@ -448,5 +677,121 @@ class AdminController extends Controller
         }
 
         return back()->with('success', 'Pengaturan sistem berhasil diperbarui!');
+    }
+
+    // Ad Banners Management
+    public function adBanners()
+    {
+        $this->checkAdmin();
+        $adBanners = \App\Models\AdBanner::latest()->get();
+        return view('admin.ad_banners.index', compact('adBanners'));
+    }
+
+    public function storeAdBanner(Request $request)
+    {
+        $this->checkAdmin();
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'image' => 'required|image|max:2048',
+        ]);
+
+        $imagePath = $request->file('image')->store('ad_banners', 'public');
+
+        \App\Models\AdBanner::create([
+            'title' => $request->title,
+            'image' => $imagePath,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return back()->with('success', 'Banner Iklan berhasil ditambahkan!');
+    }
+
+    public function updateAdBanner(Request $request, \App\Models\AdBanner $adBanner)
+    {
+        $this->checkAdmin();
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'image' => 'nullable|image|max:2048',
+        ]);
+
+        $data = [
+            'title' => $request->title,
+            'is_active' => $request->has('is_active'),
+        ];
+
+        if ($request->hasFile('image')) {
+            if ($adBanner->image) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($adBanner->image);
+            }
+            $data['image'] = $request->file('image')->store('ad_banners', 'public');
+        }
+
+        $adBanner->update($data);
+
+        return back()->with('success', 'Banner Iklan berhasil diperbarui!');
+    }
+
+    public function destroyAdBanner(\App\Models\AdBanner $adBanner)
+    {
+        $this->checkAdmin();
+        if ($adBanner->image) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($adBanner->image);
+        }
+        $adBanner->delete();
+        return back()->with('success', 'Banner Iklan dihapus.');
+    }
+
+    // Reports Management
+    public function reports(Request $request)
+    {
+        $this->checkAdmin();
+        $status = $request->query('status', 'pending');
+        
+        $query = \App\Models\Report::with(['user', 'transaction.buyer', 'transaction.seller'])->latest();
+        
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $reports = $query->paginate(15)->withQueryString();
+        
+        $counts = [
+            'pending' => \App\Models\Report::where('status', 'pending')->count(),
+            'resolved' => \App\Models\Report::where('status', 'resolved')->count(),
+            'dismissed' => \App\Models\Report::where('status', 'dismissed')->count(),
+            'all' => \App\Models\Report::count(),
+        ];
+
+        return view('admin.reports.index', compact('reports', 'counts', 'status'));
+    }
+
+    public function showReport(\App\Models\Report $report)
+    {
+        $this->checkAdmin();
+        $report->load(['user', 'transaction.buyer', 'transaction.seller', 'transaction.items.product']);
+        return view('admin.reports.show', compact('report'));
+    }
+
+    public function updateReport(Request $request, \App\Models\Report $report)
+    {
+        $this->checkAdmin();
+        $request->validate([
+            'status' => 'required|in:pending,resolved,dismissed',
+            'admin_note' => 'nullable|string|max:1000',
+        ]);
+
+        $report->update([
+            'status' => $request->status,
+            'admin_note' => $request->admin_note,
+        ]);
+
+        return redirect()->route('admin.reports')->with('success', 'Laporan berhasil diperbarui.');
+    }
+
+    public function printInvoice(\App\Models\Transaction $transaction)
+    {
+        $this->checkAdmin();
+        $transaction->load(['items.product', 'buyer', 'shippingAddressRecord']);
+        return view('admin.transactions.invoice', compact('transaction'));
     }
 }

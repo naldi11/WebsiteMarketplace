@@ -18,6 +18,12 @@ Route::get('/categories', [CategoryControllerApi::class, 'index']);
 Route::get('/payment-methods', [\App\Http\Controllers\Api\PaymentMethodControllerApi::class, 'index']);
 Route::get('/settings', [\App\Http\Controllers\Api\SystemSettingControllerApi::class, 'index']);
 Route::get('/settings/{key}', [\App\Http\Controllers\Api\SystemSettingControllerApi::class, 'show']);
+Route::get('/ad-banners', function() {
+    return response()->json([
+        'success' => true,
+        'data' => \App\Models\AdBanner::where('is_active', true)->latest()->get()
+    ]);
+});
 
 // Protected Routes (Require Token)
 Route::middleware('auth:sanctum')->group(function () {
@@ -77,7 +83,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/seller/transactions/{id}', [\App\Http\Controllers\Api\SellerControllerApi::class, 'destroy']);
     Route::get('/seller/balance', [\App\Http\Controllers\Api\SellerControllerApi::class, 'balance']);
     Route::post('/seller/transactions/mark-seen', [\App\Http\Controllers\Api\SellerControllerApi::class, 'markAsSeen']);
+    Route::get('/seller/dashboard', [\App\Http\Controllers\Api\SellerControllerApi::class, 'dashboard']);
     Route::post('/seller/withdraw', [\App\Http\Controllers\Api\SellerControllerApi::class, 'withdraw']);
+
+    // Higher level admin tasks (Report submission)
+    Route::post('/reports', [\App\Http\Controllers\Api\ReportControllerApi::class, 'store']);
 
     // Reviews
     Route::post('/reviews/{transaction}', [\App\Http\Controllers\Api\ReviewControllerApi::class, 'store']);

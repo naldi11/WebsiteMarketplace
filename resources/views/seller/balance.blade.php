@@ -210,7 +210,11 @@
                     <li>• <strong>Saldo Pending</strong>: Dana dari pesanan yang belum selesai (escrow)</li>
                     <li>• <strong>Saldo Tersedia</strong>: Dana dari pesanan yang sudah dikonfirmasi pembeli & dilepas admin
                     </li>
-                    <li>• Biaya layanan platform: <strong>5%</strong> dari setiap transaksi</li>
+                    @php
+                        $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
+                        $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
+                    @endphp
+                    <li>• Biaya layanan platform: <strong>{{ $serviceFeePercent }}%</strong> dari setiap transaksi</li>
                     <li>• Minimum penarikan: <strong>Rp 50.000</strong></li>
                     <li>• Proses pencairan: 1-3 hari kerja setelah disetujui admin</li>
                 </ul>

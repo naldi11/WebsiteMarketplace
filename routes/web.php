@@ -78,13 +78,22 @@ Route::middleware('auth')->group(function () {
     // Admin Routes
     Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\AdminController::class, 'dashboard'])->name('admin.dashboard');
+        
+        // User Management
+        Route::get('/users', [App\Http\Controllers\AdminController::class, 'users'])->name('admin.users');
+        Route::post('/users/{id}/suspend', [App\Http\Controllers\AdminController::class, 'toggleSuspendUser'])->name('admin.users.suspend');
+        Route::delete('/users/{id}/delete', [App\Http\Controllers\AdminController::class, 'deleteUser'])->name('admin.users.delete');
+
         Route::get('/transactions', [App\Http\Controllers\AdminController::class, 'transactions'])->name('admin.transactions');
         Route::get('/transactions/{transaction}', [App\Http\Controllers\AdminController::class, 'showTransaction'])->name('admin.transactions.show');
+        Route::get('/transactions/{transaction}/invoice', [App\Http\Controllers\AdminController::class, 'printInvoice'])->name('admin.transactions.invoice');
         Route::post('/verify/{transaction}', [App\Http\Controllers\AdminController::class, 'verifyPayment'])->name('admin.verify');
         Route::post('/reject/{transaction}', [App\Http\Controllers\AdminController::class, 'rejectPayment'])->name('admin.reject');
         Route::post('/release/{transaction}', [App\Http\Controllers\AdminController::class, 'releaseFunds'])->name('admin.release');
         Route::get('/vouchers', [App\Http\Controllers\AdminController::class, 'vouchers'])->name('admin.vouchers');
         Route::post('/vouchers', [App\Http\Controllers\AdminController::class, 'storeVoucher'])->name('admin.vouchers.store');
+        Route::put('/vouchers/{voucher}', [App\Http\Controllers\AdminController::class, 'updateVoucher'])->name('admin.vouchers.update');
+        Route::delete('/vouchers/{voucher}', [App\Http\Controllers\AdminController::class, 'destroyVoucher'])->name('admin.vouchers.destroy');
 
         // Payment Methods
         Route::get('/payment-methods', [App\Http\Controllers\AdminController::class, 'paymentMethods'])->name('admin.payment_methods');
@@ -100,11 +109,22 @@ Route::middleware('auth')->group(function () {
         Route::put('/categories/{category}', [App\Http\Controllers\AdminController::class, 'updateCategory'])->name('admin.categories.update');
         Route::delete('/categories/{category}', [App\Http\Controllers\AdminController::class, 'destroyCategory'])->name('admin.categories.destroy');
 
+        // Reports
+        Route::get('/reports', [App\Http\Controllers\AdminController::class, 'reports'])->name('admin.reports');
+        Route::get('/reports/{report}', [App\Http\Controllers\AdminController::class, 'showReport'])->name('admin.reports.show');
+        Route::post('/reports/{report}/update', [App\Http\Controllers\AdminController::class, 'updateReport'])->name('admin.reports.update');
+
         // Balances
         Route::get('/balances', [App\Http\Controllers\AdminController::class, 'balances'])->name('admin.balances');
         // Settings
         Route::get('/settings', [App\Http\Controllers\AdminController::class, 'settings'])->name('admin.settings');
         Route::post('/settings', [App\Http\Controllers\AdminController::class, 'updateSettings'])->name('admin.settings.update');
+
+        // Ad Banners
+        Route::get('/ad-banners', [App\Http\Controllers\AdminController::class, 'adBanners'])->name('admin.ad_banners');
+        Route::post('/ad-banners', [App\Http\Controllers\AdminController::class, 'storeAdBanner'])->name('admin.ad_banners.store');
+        Route::put('/ad-banners/{adBanner}', [App\Http\Controllers\AdminController::class, 'updateAdBanner'])->name('admin.ad_banners.update');
+        Route::delete('/ad-banners/{adBanner}', [App\Http\Controllers\AdminController::class, 'destroyAdBanner'])->name('admin.ad_banners.destroy');
     });
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/ship', [TransactionController::class, 'shipOrder'])->name('transactions.ship');
@@ -113,6 +133,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/transactions/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('transactions.cancel');
 
     Route::post('/reviews/{transaction}', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::post('/reports', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
 
     // Profile & Wishlist
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

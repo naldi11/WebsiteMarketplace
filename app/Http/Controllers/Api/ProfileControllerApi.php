@@ -227,11 +227,13 @@ class ProfileControllerApi extends Controller
             'recipient_name' => 'required|string',
             'phone' => 'required|string',
             'full_address' => 'required|string',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
         }
-        $data = $request->only(['label', 'recipient_name', 'phone', 'full_address']);
+        $data = $request->only(['label', 'recipient_name', 'phone', 'full_address', 'latitude', 'longitude']);
         $address->update($data);
         return response()->json(['status' => 'success', 'data' => $address, 'message' => 'Alamat diperbarui']);
     }

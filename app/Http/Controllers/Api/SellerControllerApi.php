@@ -170,4 +170,71 @@ class SellerControllerApi extends Controller
 
         return response()->json(['status' => 'success']);
     }
+
+    /**
+     * Get seller dashboard stats
+     */
+    public function dashboard(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $totalSales = Transaction::where('seller_id', $userId)->whereIn('status', ['completed', 'received'])->sum('seller_amount');
+        $totalOrders = Transaction::where('seller_id', $userId)->count();
+        $totalProducts = \App\Models\Product::where('user_id', $userId)->count();
+        $conversionRate = $totalProducts > 0 ? min(100, round(($totalOrders / $totalProducts) * 10)) : 0;
+
+        $salesTrend = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $amount = Transaction::where('seller_id', $userId)
+                ->whereIn('status', ['received', 'completed'])
+                ->whereDate('created_at', $date->toDateString())
+                ->sum('seller_amount');
+            
+            $salesTrend[] = [
+                'date' => $date->translatedFormat('D'),
+                'amount' => $amount
+            ];
+        }
+
+        $topProductsQuery = \Illuminate\Support\Facades\DB::table('transaction_details')
+            ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_details.product_id', '=', 'products.id')
+            ->where('transactions.seller_id', $userId)
+            ->whereIn('transactions.status', ['received', 'completed'])
+            ->select('products.name', \Illuminate\Support\Facades\DB::raw('SUM(transaction_details.quantity) as sales'))
+            ->groupBy('products.name')
+            ->orderBy('sales', 'desc')
+            ->limit(5)
+            ->get();
+
+        $topProducts = [];
+        foreach ($topProductsQuery as $b) {
+            $topProducts[] = [
+                'productName' => mb_strimwidth($b->name, 0, 15, "..."),
+                'sales' => (int) $b->sales
+            ];
+        }
+        
+        $orderStatus = [
+            'pending' => Transaction::where('seller_id', $userId)->where('status', 'pending')->count(),
+            'processing' => Transaction::where('seller_id', $userId)->whereIn('status', ['processing', 'packed'])->count(),
+            'shipped' => Transaction::where('seller_id', $userId)->where('status', 'shipped')->count(),
+            'completed' => Transaction::where('seller_id', $userId)->whereIn('status', ['received', 'completed'])->count(),
+            'cancelled' => Transaction::where('seller_id', $userId)->where('status', 'cancelled')->count()
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'totalSales' => $totalSales,
+                'totalOrders' => $totalOrders,
+                'totalProducts' => $totalProducts,
+                'conversionRate' => $conversionRate,
+                'salesTrend' => $salesTrend,
+                'topProducts' => $topProducts,
+                'orderStatus' => $orderStatus
+            ]
+        ]);
+    }
 }

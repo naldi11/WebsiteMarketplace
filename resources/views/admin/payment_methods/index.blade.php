@@ -1,274 +1,242 @@
 @extends('layouts.admin')
 
+@section('title', 'Kelola Metode Pembayaran')
+
 @section('content')
-    <div class="py-6">
-        <h1 class="text-2xl font-bold text-gray-900 tracking-tight mb-6">Kelola Metode Pembayaran</h1>
+<div class="px-4 sm:px-6 lg:px-8 py-8">
+    <div class="sm:flex sm:items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Kelola Metode Pembayaran</h1>
+            <p class="mt-2 text-sm text-gray-700">Atur cara pembayaran yang tersedia untuk pelanggan di aplikasi.</p>
+        </div>
+        <div class="mt-4 sm:mt-0 sm:ml-16">
+            <button onclick="openAddModal()" class="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Tambah Metode
+            </button>
+        </div>
+    </div>
 
-        @if(session('success'))
-            <div class="alert alert-success mb-4">{{ session('success') }}</div>
-        @endif
+    @if(session('success'))
+        <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-400 text-green-700 text-sm font-medium rounded-r-md">
+            {{ session('success') }}
+        </div>
+    @endif
 
-        <!-- Form Tambah Metode Pembayaran -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
-            <h2 class="font-bold text-gray-900 mb-4">Tambah Metode Pembayaran Baru</h2>
-            <form action="{{ route('admin.payment_methods.store') }}" method="POST">
+    <!-- Payment Methods Table -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50 text-gray-500 uppercase text-[11px] font-bold tracking-wider">
+                <tr>
+                    <th class="px-6 py-4 text-left">Metode</th>
+                    <th class="px-6 py-4 text-left">Rekening/Akun</th>
+                    <th class="px-6 py-4 text-left">Tipe</th>
+                    <th class="px-6 py-4 text-left">Biaya Admin</th>
+                    <th class="px-6 py-4 text-left">Status</th>
+                    <th class="px-6 py-4 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100">
+                @forelse($paymentMethods as $pm)
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 flex-shrink-0 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl {{ strlen($pm->icon ?? '') > 4 ? 'text-[8px]' : (strlen($pm->icon ?? '') > 2 ? 'text-xs' : 'text-xl') }} font-black overflow-hidden border border-indigo-100 italic px-0.5 text-center uppercase break-all leading-none">
+                                {{ $pm->icon ?? $pm->type_icon }}
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-bold text-gray-900 leading-tight">{{ $pm->name }}</div>
+                                <div class="text-[10px] text-gray-400 font-mono tracking-tighter uppercase">{{ $pm->code }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span class="font-mono bg-gray-50 px-2 py-1 rounded border border-gray-100 text-xs {{ $pm->account_number ? 'text-gray-900 font-bold' : 'text-gray-300' }}">
+                            {{ $pm->account_number ?? 'N/A' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-100">
+                            {{ $pm->type_label }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        @if($pm->admin_fee > 0 || $pm->admin_fee_percent > 0)
+                            <div class="flex flex-col text-[10px] text-gray-700 font-bold">
+                                @if($pm->admin_fee > 0)
+                                    <span>Rp {{ number_format($pm->admin_fee, 0, ',', '.') }}</span>
+                                @endif
+                                @if($pm->admin_fee_percent > 0)
+                                    <span class="text-indigo-500">+{{ floatval($pm->admin_fee_percent) }}%</span>
+                                @endif
+                            </div>
+                        @else
+                            <span class="text-gray-300 italic text-[10px]">Gratis</span>
+                        @endif
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $pm->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                            {{ $pm->is_active ? 'Aktif' : 'Non-Aktif' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <div class="flex justify-end gap-3 font-bold uppercase tracking-widest text-[10px]">
+                            <button onclick='editPaymentMethod(@json($pm))' class="text-indigo-600 hover:text-indigo-800 transition">Edit</button>
+                            <form action="{{ route('admin.payment_methods.destroy', $pm) }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin ingin menghapus metode {{ $pm->name }}?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-400 hover:text-red-600 transition">Hapus</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center">
+                        <div class="text-gray-400 mb-2 text-3xl">📭</div>
+                        <p class="text-gray-500 font-medium">Belum ada metode pembayaran.</p>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Tambah/Edit -->
+<div id="paymentModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden z-50 overflow-y-auto">
+    <div class="min-h-screen px-4 text-center">
+        <span class="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
+        
+        <div class="inline-block w-full max-w-xl p-8 my-8 text-left align-middle bg-white shadow-2xl rounded-3xl transform transition-all border border-gray-100">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tighter" id="modalTitle">Tambah Metode</h3>
+                    <p class="text-gray-500 text-sm mt-1">Konfigurasi opsi pembayaran pelanggan.</p>
+                </div>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-2 bg-gray-50 rounded-full transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form id="paymentForm" action="{{ route('admin.payment_methods.store') }}" method="POST">
                 @csrf
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <input type="hidden" name="_method" id="formMethod" value="POST">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Kode *</label>
-                        <input type="text" name="code" class="w-full rounded-lg border-gray-300" placeholder="bank_bca"
-                            required>
-                        <small class="text-gray-500">Format: bank_bca, gopay, dll</small>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Metode</label>
+                        <input type="text" name="code" id="pCode" required placeholder="CTH: bank_bca"
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all font-bold text-sm">
                     </div>
+                    
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama *</label>
-                        <input type="text" name="name" class="w-full rounded-lg border-gray-300"
-                            placeholder="BCA Virtual Account" required>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Metode</label>
+                        <input type="text" name="name" id="pName" required placeholder="CTH: BCA Transfer"
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all font-bold text-sm">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Rekening</label>
-                        <input type="text" name="account_number" class="w-full rounded-lg border-gray-300"
-                            placeholder="1234567890">
-                        <small class="text-gray-500">Nomor rekening atau akun</small>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Nomor Rekening / Akun</label>
+                        <input type="text" name="account_number" id="pAccountNumber" placeholder="1234xxx (Opsional)"
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all font-mono text-sm">
                     </div>
+
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipe *</label>
-                        <select name="type" class="w-full rounded-lg border-gray-300" required>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Tipe</label>
+                        <select name="type" id="pType" required
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm">
                             <option value="bank_transfer">Transfer Bank</option>
                             <option value="ewallet">E-Wallet</option>
                             <option value="qris">QRIS</option>
                             <option value="credit_card">Kartu Kredit</option>
-                            <option value="cod">Bayar di Tempat</option>
+                            <option value="cod">Bayar di Tempat (COD)</option>
                         </select>
                     </div>
+
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Icon (Emoji)</label>
-                        <input type="text" name="icon" class="w-full rounded-lg border-gray-300" placeholder="🏦"
-                            maxlength="10">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Icon (Emoji)</label>
+                        <input type="text" name="icon" id="pIcon" placeholder="🏦" maxlength="10"
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-center">
                     </div>
+
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Biaya Admin (Rp)</label>
-                        <input type="number" name="admin_fee" class="w-full rounded-lg border-gray-300" placeholder="0"
-                            min="0" step="0.01">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Biaya Admin (Rp)</label>
+                        <input type="number" name="admin_fee" id="pAdminFee" value="0" step="0.01"
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm">
                     </div>
+
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Biaya Admin (%)</label>
-                        <input type="number" name="admin_fee_percent" class="w-full rounded-lg border-gray-300"
-                            placeholder="0" min="0" max="100" step="0.01">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Biaya Admin (%)</label>
+                        <input type="number" name="admin_fee_percent" id="pAdminFeePercent" value="0" step="0.01" max="100"
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm">
                     </div>
+
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
-                        <input type="number" name="sort_order" class="w-full rounded-lg border-gray-300" placeholder="0"
-                            value="0">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Urutan Tampilan</label>
+                        <input type="number" name="sort_order" id="pSortOrder" value="0"
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm">
                     </div>
+
                     <div class="flex items-center pt-6">
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" name="is_active" value="1" checked class="rounded border-gray-300">
-                            <span class="text-sm font-medium text-gray-700">Aktif</span>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_active" id="pIsActive" value="1" checked
+                                class="w-5 h-5 text-indigo-600 border-2 border-gray-200 rounded focus:ring-indigo-500 transition">
+                            <span class="ml-3 text-sm font-bold text-gray-700">Aktifkan Metode Ini</span>
                         </label>
                     </div>
-                </div>
-                <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Instruksi Pembayaran</label>
-                    <textarea name="instructions" class="w-full rounded-lg border-gray-300" rows="2"
-                        placeholder="Cara pembayaran..."></textarea>
-                </div>
-                <div class="mt-4">
-                    <button type="submit"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition">
-                        Simpan Metode Pembayaran
-                    </button>
-                </div>
-            </form>
-        </div>
 
-        <!-- Daftar Metode Pembayaran -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <table class="w-full text-left text-sm text-gray-500">
-                <thead class="bg-gray-50 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
-                    <tr>
-                        <th class="px-6 py-4">Metode</th>
-                        <th class="px-6 py-4">Nomor Rekening/Akun</th>
-                        <th class="px-6 py-4">Tipe</th>
-                        <th class="px-6 py-4">Fee</th>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse($paymentMethods as $pm)
-                        <tr>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-2xl">{{ $pm->icon ?? $pm->type_icon }}</span>
-                                    <div>
-                                        <div class="font-bold text-gray-900">{{ $pm->name }}</div>
-                                        <div class="text-xs text-gray-500">{{ $pm->code }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span
-                                    class="font-mono text-sm {{ $pm->account_number ? 'text-gray-900 font-semibold' : 'text-gray-400' }}">
-                                    {{ $pm->account_number ?? '-' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700">
-                                    {{ $pm->type_label }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-xs">
-                                @if($pm->admin_fee > 0)
-                                    <div>+ Rp {{ number_format($pm->admin_fee, 0, ',', '.') }}</div>
-                                @endif
-                                @if($pm->admin_fee_percent > 0)
-                                    <div>+ {{ $pm->admin_fee_percent }}%</div>
-                                @endif
-                                @if($pm->admin_fee == 0 && $pm->admin_fee_percent == 0)
-                                    <span class="text-gray-400">Gratis</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $pm->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
-                                    {{ $pm->is_active ? 'Aktif' : 'Non-Aktif' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex gap-2">
-                                    <button onclick='editPaymentMethod(@json($pm))'
-                                        class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                        Edit
-                                    </button>
-                                    <form action="{{ route('admin.payment_methods.destroy', $pm) }}" method="POST"
-                                        onsubmit="return confirm('Yakin hapus metode pembayaran ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
-                                            Hapus
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                                Belum ada metode pembayaran. Silakan tambahkan metode pembayaran baru.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Edit Modal -->
-    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <form id="editForm" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="p-6">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4">Edit Metode Pembayaran</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Kode *</label>
-                            <input type="text" name="code" id="edit_code" class="w-full rounded-lg border-gray-300"
-                                required>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama *</label>
-                            <input type="text" name="name" id="edit_name" class="w-full rounded-lg border-gray-300"
-                                required>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Rekening/Akun</label>
-                            <input type="text" name="account_number" id="edit_account_number"
-                                class="w-full rounded-lg border-gray-300">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipe *</label>
-                            <select name="type" id="edit_type" class="w-full rounded-lg border-gray-300" required>
-                                <option value="bank_transfer">Transfer Bank</option>
-                                <option value="ewallet">E-Wallet</option>
-                                <option value="qris">QRIS</option>
-                                <option value="credit_card">Kartu Kredit</option>
-                                <option value="cod">Bayar di Tempat</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                            <input type="text" name="icon" id="edit_icon" class="w-full rounded-lg border-gray-300"
-                                maxlength="10">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Biaya Admin (Rp)</label>
-                            <input type="number" name="admin_fee" id="edit_admin_fee"
-                                class="w-full rounded-lg border-gray-300" min="0" step="0.01">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Biaya Admin (%)</label>
-                            <input type="number" name="admin_fee_percent" id="edit_admin_fee_percent"
-                                class="w-full rounded-lg border-gray-300" min="0" max="100" step="0.01">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
-                            <input type="number" name="sort_order" id="edit_sort_order"
-                                class="w-full rounded-lg border-gray-300">
-                        </div>
-                        <div class="flex items-center pt-6">
-                            <label class="flex items-center gap-2">
-                                <input type="checkbox" name="is_active" id="edit_is_active" value="1"
-                                    class="rounded border-gray-300">
-                                <span class="text-sm font-medium text-gray-700">Aktif</span>
-                            </label>
-                        </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Instruksi Pembayaran</label>
+                        <textarea name="instructions" id="pInstructions" rows="3" placeholder="Langkah-langkah pembayaran untuk pelanggan..."
+                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm"></textarea>
                     </div>
-                    <div class="mt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Instruksi Pembayaran</label>
-                        <textarea name="instructions" id="edit_instructions" class="w-full rounded-lg border-gray-300"
-                            rows="2"></textarea>
-                    </div>
+                </div>
 
-                    <div class="flex gap-3 mt-6">
-                        <button type="submit"
-                            class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">
-                            Update
-                        </button>
-                        <button type="button" onclick="closeEditModal()"
-                            class="bg-gray-200 text-gray-700 px-6 py-2 rounded-xl font-bold hover:bg-gray-300">
-                            Batal
-                        </button>
-                    </div>
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 text-sm font-bold text-gray-400 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors uppercase tracking-widest">Batal</button>
+                    <button type="submit" class="flex-1 px-4 py-3 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all uppercase tracking-widest">Simpan Perubahan</button>
                 </div>
             </form>
         </div>
     </div>
+</div>
 
-    @push('scripts')
-        <script>
-            function editPaymentMethod(pm) {
-                document.getElementById('editForm').action = `/admin/payment-methods/${pm.id}`;
-                document.getElementById('edit_code').value = pm.code || '';
-                document.getElementById('edit_name').value = pm.name || '';
-                document.getElementById('edit_account_number').value = pm.account_number || '';
-                document.getElementById('edit_type').value = pm.type || 'bank_transfer';
-                document.getElementById('edit_icon').value = pm.icon || '';
-                document.getElementById('edit_admin_fee').value = pm.admin_fee || 0;
-                document.getElementById('edit_admin_fee_percent').value = pm.admin_fee_percent || 0;
-                document.getElementById('edit_sort_order').value = pm.sort_order || 0;
-                document.getElementById('edit_is_active').checked = pm.is_active == 1;
-                document.getElementById('edit_instructions').value = pm.instructions || '';
-                document.getElementById('editModal').classList.remove('hidden');
-            }
+@push('scripts')
+<script>
+    function closeModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+        document.getElementById('paymentForm').reset();
+        document.getElementById('paymentForm').action = "{{ route('admin.payment_methods.store') }}";
+        document.getElementById('formMethod').value = 'POST';
+        document.getElementById('modalTitle').innerText = 'Tambah Metode';
+    }
 
-            function closeEditModal() {
-                document.getElementById('editModal').classList.add('hidden');
-            }
-        </script>
-    @endpush
+    function openAddModal() {
+        document.getElementById('paymentModal').classList.remove('hidden');
+        document.getElementById('modalTitle').innerText = 'Tambah Metode';
+        document.getElementById('paymentForm').action = "{{ route('admin.payment_methods.store') }}";
+        document.getElementById('formMethod').value = 'POST';
+    }
+
+    function editPaymentMethod(pm) {
+        document.getElementById('paymentModal').classList.remove('hidden');
+        document.getElementById('modalTitle').innerText = 'Edit Metode';
+        document.getElementById('paymentForm').action = `/admin/payment-methods/${pm.id}`;
+        document.getElementById('formMethod').value = 'PUT';
+        
+        document.getElementById('pCode').value = pm.code || '';
+        document.getElementById('pName').value = pm.name || '';
+        document.getElementById('pAccountNumber').value = pm.account_number || '';
+        document.getElementById('pType').value = pm.type || 'bank_transfer';
+        document.getElementById('pIcon').value = pm.icon || '';
+        document.getElementById('pAdminFee').value = pm.admin_fee || 0;
+        document.getElementById('pAdminFeePercent').value = pm.admin_fee_percent || 0;
+        document.getElementById('pSortOrder').value = pm.sort_order || 0;
+        document.getElementById('pInstructions').value = pm.instructions || '';
+        document.getElementById('pIsActive').checked = (pm.is_active == 1 || pm.is_active == true);
+    }
+</script>
+@endpush
 @endsection
+ion

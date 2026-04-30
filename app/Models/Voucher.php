@@ -15,10 +15,12 @@ class Voucher extends Model
         'usage_count',
         'min_purchase',
         'target_user_id',
-        'is_active'
+        'category_id',
+        'is_active',
+        'terms'
     ];
 
-    public function isValidFor($amount, $userId = null)
+    public function isValidFor($amount, $userId = null, $itemCategoryIds = [])
     {
         if (!$this->is_active)
             return false;
@@ -28,6 +30,13 @@ class Voucher extends Model
             return false;
         if ($this->target_user_id && $this->target_user_id !== $userId)
             return false;
+        
+        // Category Restriction logic
+        if ($this->category_id) {
+            if (empty($itemCategoryIds) || !in_array($this->category_id, $itemCategoryIds)) {
+                return false;
+            }
+        }
 
         return true;
     }
@@ -44,6 +53,11 @@ class Voucher extends Model
 
         // fixed
         return (double) min($this->discount_amount, $amount);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     public function targetUser()

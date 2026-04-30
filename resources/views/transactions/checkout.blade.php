@@ -115,6 +115,8 @@
                                                 <label class="d-block h-100" style="cursor: pointer;">
                                                     <input type="radio" name="payment_method" value="{{ $method->code }}" 
                                                         class="d-none payment-radio"
+                                                        data-fee="{{ $method->admin_fee ?? 0 }}"
+                                                        data-fee-percent="{{ $method->admin_fee_percent ?? 0 }}"
                                                         {{ $loop->parent->first && $loop->first ? 'checked' : '' }}>
                                                     
                                                     <div class="payment-method-card h-100 position-relative overflow-hidden" 
@@ -247,6 +249,11 @@
                                             <div>
                                                 <span class="fw-bold">{{ $appliedVoucher['code'] }}</span>
                                                 <div class="small text-success">- Rp {{ number_format($discountAmount ?? 0, 0, ',', '.') }}</div>
+                                                @if(isset($appliedVoucher['terms']) && $appliedVoucher['terms'])
+                                                    <div class="small text-muted mt-1" style="font-size: 11px; font-style: italic;">
+                                                        S&K: {{ $appliedVoucher['terms'] }}
+                                                    </div>
+                                                @endif
                                             </div>
                                             <button type="button" onclick="removeVoucher()" class="btn btn-link btn-sm text-danger p-0 text-decoration-none" title="Hapus Voucher">
                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -281,10 +288,14 @@
                                     <span>Biaya Layanan</span>
                                     <span>Rp {{ number_format($serviceFee, 0, ',', '.') }}</span>
                                 </div>
+                                <div class="d-flex justify-content-between mb-2" id="adminFeeRow" style="display: none !important;">
+                                    <span>Biaya Admin (Pembayaran)</span>
+                                    <span id="adminFeeAmount">Rp 0</span>
+                                </div>
                                 <hr>
                                 <div class="d-flex justify-content-between mb-3">
                                     <strong>Total</strong>
-                                    <strong style="color: var(--primary-color)">Rp {{ number_format($totalPrice, 0, ',', '.') }}</strong>
+                                    <strong style="color: var(--primary-color)" id="grandTotalDisplay">Rp {{ number_format($totalPrice, 0, ',', '.') }}</strong>
                                 </div>
 
                                 <!-- Escrow Notice -->
@@ -390,8 +401,43 @@
                 selectedCard.querySelector('.check-indicator').style.opacity = '1';
                 selectedCard.querySelector('.check-indicator').style.transform = 'scale(1)';
                 selectedCard.querySelector('.payment-icon').style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                
+                // Calculate and update Admin Fee display
+                calculateAdminFee(this);
             });
         });
+
+        // Backend prices for calculation
+        const baseSubtotalRaw = {{ $subtotal }};
+        const baseTotalPriceRow = {{ $totalPrice }};
+        
+        function calculateAdminFee(radioInput) {
+            const fee = parseFloat(radioInput.dataset.fee) || 0;
+            const feePercent = parseFloat(radioInput.dataset.feePercent) || 0;
+            
+            let adminFee = 0;
+            if (feePercent > 0) {
+                adminFee += Math.ceil(baseSubtotalRaw * feePercent / 100);
+            }
+            if (fee > 0) {
+                adminFee += fee;
+            }
+            
+            const adminFeeRow = document.getElementById('adminFeeRow');
+            const adminFeeAmount = document.getElementById('adminFeeAmount');
+            const grandTotalDisplay = document.getElementById('grandTotalDisplay');
+            
+            if (adminFee > 0) {
+                adminFeeRow.style.setProperty('display', 'flex', 'important');
+                adminFeeAmount.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(adminFee);
+            } else {
+                adminFeeRow.style.setProperty('display', 'none', 'important');
+            }
+            
+            // Re-calculate grand total
+            const newTotal = baseTotalPriceRow + adminFee;
+            grandTotalDisplay.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(newTotal);
+        }
 
         // Add hover effects for payment method cards
         document.querySelectorAll('.payment-method-card').forEach(card => {

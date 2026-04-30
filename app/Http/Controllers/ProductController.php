@@ -11,7 +11,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with('category', 'user')->where('stock', '>', 0);
+        $query = Product::with('category', 'user')->where('stock', '>', 0)->withAvgRating();
 
         if ($request->has('latitude') && $request->has('longitude')) {
             $userLat = $request->latitude;
@@ -26,9 +26,10 @@ class ProductController extends Controller
             $query->selectRaw("*, {$haversine} AS distance")
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
+                ->orderByRating('desc')
                 ->orderBy('distance', 'asc');
         } else {
-            $query->latest();
+            $query->orderByRating('desc')->latest();
         }
 
         $products = $query->get();
@@ -70,7 +71,7 @@ class ProductController extends Controller
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'description' => 'nullable|string',
-            'discount_price' => 'nullable|numeric|min:0|lt:price',
+            'discount_price' => 'nullable|numeric|min:0|lte:price',
         ]);
 
         // First image becomes main image
@@ -140,7 +141,7 @@ class ProductController extends Controller
             'stock' => 'required|integer',
             'location' => 'required',
             'additional_images.*' => 'nullable|image|max:2048',
-            'discount_price' => 'nullable|numeric|min:0|lt:price',
+            'discount_price' => 'nullable|numeric|min:0|lte:price',
         ]);
 
         // Update main image if uploaded
