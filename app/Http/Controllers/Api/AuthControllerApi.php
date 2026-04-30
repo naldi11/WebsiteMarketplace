@@ -34,6 +34,8 @@ class AuthControllerApi extends Controller
         if ($request->role === 'seller') {
             $rules['shop_name'] = 'required|string|max:255';
             $rules['address'] = 'required|string|max:500';
+            $rules['latitude'] = 'nullable|numeric';
+            $rules['longitude'] = 'nullable|numeric';
         }
 
         $validator = Validator::make($request->all(), $rules);
@@ -53,6 +55,8 @@ class AuthControllerApi extends Controller
             'role' => $request->role === 'seller' ? 'seller' : 'buyer',
             'shop_name' => $request->role === 'seller' ? $request->shop_name : null,
             'address' => $request->role === 'seller' ? $request->address : null,
+            'latitude' => $request->role === 'seller' ? $request->latitude : null,
+            'longitude' => $request->role === 'seller' ? $request->longitude : null,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
