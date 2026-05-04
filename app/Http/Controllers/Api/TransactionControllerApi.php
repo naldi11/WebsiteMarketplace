@@ -620,8 +620,22 @@ class TransactionControllerApi extends Controller
 
             $path = $request->file('proof_of_payment')->store('images/proofs', 'public');
 
+            // Append to existing proofs (support multiple uploads)
+            $raw = $transaction->payment_proof;
+            $existingProofs = [];
+            if (!empty($raw)) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $existingProofs = $decoded;
+                } else {
+                    // Old format: plain string path
+                    $existingProofs = [$raw];
+                }
+            }
+            $existingProofs[] = $path;
+
             $transaction->update([
-                'payment_proof' => $path,
+                'payment_proof' => json_encode($existingProofs),
                 'status' => 'pending' // Waiting for admin verification
             ]);
 

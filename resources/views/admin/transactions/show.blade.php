@@ -211,12 +211,30 @@
             <!-- Payment Proof Sidebar -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 class="font-bold text-gray-800 mb-4">Bukti Pembayaran</h3>
-                @if($transaction->payment_proof)
-                    <div class="rounded-xl overflow-hidden border border-gray-200 mb-4">
-                        <a href="{{ Storage::url($transaction->payment_proof) }}" target="_blank">
-                            <img src="{{ Storage::url($transaction->payment_proof) }}" class="w-full h-56 object-cover hover:scale-105 transition duration-500">
-                        </a>
+                @php
+                    // Handle: null, plain string "path/file.jpg", or JSON '["path1","path2"]'
+                    $raw = $transaction->getRawOriginal('payment_proof') ?? $transaction->payment_proof;
+                    $proofs = [];
+                    if (!empty($raw)) {
+                        $decoded = json_decode($raw, true);
+                        if (is_array($decoded)) {
+                            $proofs = $decoded;
+                        } else {
+                            $proofs = [$raw];
+                        }
+                    }
+                @endphp
+                @if($proofs && count($proofs) > 0)
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        @foreach($proofs as $proof)
+                            <div class="rounded-xl overflow-hidden border border-gray-200">
+                                <a href="{{ Storage::url($proof) }}" target="_blank">
+                                    <img src="{{ Storage::url($proof) }}" class="w-full h-36 object-cover hover:scale-105 transition duration-500">
+                                </a>
+                            </div>
+                        @endforeach
                     </div>
+                    <p class="text-[10px] text-gray-400 mb-4">{{ count($proofs) }} bukti pembayaran diunggah. Klik untuk memperbesar.</p>
                 @else
                     <div class="py-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 mb-4">
                         <i class="fas fa-file-invoice-dollar text-3xl mb-2"></i>

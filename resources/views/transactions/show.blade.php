@@ -29,11 +29,21 @@
                         <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 mb-6">
                             <h3 class="font-bold text-yellow-800 text-sm mb-2">👮 Panel Admin: Verifikasi Pembayaran</h3>
                             <div class="flex items-center gap-4">
-                                @if($transaction->payment_proof)
-                                    <a href="{{ Storage::url($transaction->payment_proof) }}" target="_blank"
-                                        class="text-blue-600 hover:text-blue-800 underline text-sm font-semibold">
-                                        Lihat Bukti
-                                    </a>
+                                @php
+                                    $rawPP = $transaction->getRawOriginal('payment_proof') ?? $transaction->payment_proof;
+                                    $adminProofs = [];
+                                    if (!empty($rawPP)) {
+                                        $d = json_decode($rawPP, true);
+                                        $adminProofs = is_array($d) ? $d : [$rawPP];
+                                    }
+                                @endphp
+                                @if(count($adminProofs) > 0)
+                                    @foreach($adminProofs as $idx => $adminProof)
+                                        <a href="{{ Storage::url($adminProof) }}" target="_blank"
+                                            class="text-blue-600 hover:text-blue-800 underline text-sm font-semibold">
+                                            Bukti {{ $idx + 1 }}
+                                        </a>
+                                    @endforeach
                                 @endif
                                 <form action="{{ route('admin.verify', $transaction) }}" method="POST">
                                     @csrf
@@ -423,12 +433,26 @@
                             </div>
                         @endif
 
-                        {{-- View Payment Proof --}}
-                        @if($transaction->payment_proof)
-                            <a href="{{ Storage::url($transaction->payment_proof) }}" target="_blank"
-                                class="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">
-                                📄 Lihat Bukti Pembayaran
-                            </a>
+                        {{-- View Payment Proof(s) --}}
+                        @php
+                            $rawVP = $transaction->getRawOriginal('payment_proof') ?? $transaction->payment_proof;
+                            $viewProofs = [];
+                            if (!empty($rawVP)) {
+                                $dv = json_decode($rawVP, true);
+                                $viewProofs = is_array($dv) ? $dv : [$rawVP];
+                            }
+                        @endphp
+                        @if($viewProofs && count($viewProofs) > 0)
+                            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                <p class="text-xs font-bold text-gray-700 mb-2">📄 Bukti Pembayaran ({{ count($viewProofs) }})</p>
+                                <div class="grid grid-cols-{{ min(count($viewProofs), 3) }} gap-2">
+                                    @foreach($viewProofs as $vProof)
+                                        <a href="{{ Storage::url($vProof) }}" target="_blank" class="block rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition">
+                                            <img src="{{ Storage::url($vProof) }}" class="w-full h-24 object-cover">
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
                         @endif
 
                         {{-- Confirm Received (Buyer) with Photos --}}

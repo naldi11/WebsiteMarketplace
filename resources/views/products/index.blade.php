@@ -182,7 +182,7 @@
                                                 style="font-size: 0.70rem;">Rp
                                                 {{ number_format($discProduct->price, 0, ',', '.') }}</span>
                                             <span class="product-price text-nowrap mt-1 lh-1" style="color: #dc3545;">Rp
-                                                {{ number_format($discProduct->discount_price, 0, ',', '.') }}</span>
+                                                {{ number_format($discProduct->effective_price, 0, ',', '.') }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -378,7 +378,7 @@
                                                         {{ number_format($product->price, 0, ',', '.') }}</span>
                                                     <span class="product-price text-nowrap"
                                                         style="color: #dc3545; font-size: 14px;">Rp
-                                                        {{ number_format($product->discount_price, 0, ',', '.') }}</span>
+                                                        {{ number_format($product->effective_price, 0, ',', '.') }}</span>
                                                 </div>
                                             @else
                                                 <div class="d-flex flex-column justify-content-end lh-1" style="min-height: 28px;">

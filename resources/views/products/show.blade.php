@@ -47,7 +47,7 @@
                         @if($product->hasDiscount())
                             <div class="d-flex align-items-center gap-3">
                                 <span class="fs-3 fw-bold" style="color: #dc3545;">Rp
-                                    {{ number_format($product->discount_price, 0, ',', '.') }}</span>
+                                    {{ number_format($product->effective_price, 0, ',', '.') }}</span>
                                 <span class="badge bg-danger fs-6">-{{ $product->discount_percent }}%</span>
                             </div>
                             <span class="text-muted text-decoration-line-through fs-5">Rp
