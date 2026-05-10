@@ -31,7 +31,12 @@ class ProductControllerApi extends Controller
             $query->orderByRating('desc')->latest();
         }
 
-        $products = $query->paginate(10);
+        if ($request->has('all') || $request->has('no_paginate')) {
+            $products = $query->get();
+        } else {
+            $perPage = $request->input('per_page', 10);
+            $products = $query->paginate($perPage);
+        }
 
         $wishlistIds = collect();
         if (auth('sanctum')->check()) {
@@ -39,7 +44,9 @@ class ProductControllerApi extends Controller
         }
 
         // Map data to calculate effective price and distance
-        $products->getCollection()->transform(function ($product) use ($wishlistIds) {
+        $items = ($products instanceof \Illuminate\Pagination\LengthAwarePaginator) ? $products->getCollection() : $products;
+        
+        $items->transform(function ($product) use ($wishlistIds) {
             $data = $product->toArray();
             $data['effective_price'] = $product->effective_price;
             $data['has_discount'] = $product->hasDiscount();
