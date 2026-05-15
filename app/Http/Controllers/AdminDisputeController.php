@@ -125,16 +125,12 @@ class AdminDisputeController extends Controller
                     'Dana dilepas ke penjual (dipotong 10% platform fee). Pembeli tidak dapat memberi rating.');
 
                 $this->sendAdminSystemMessage($dispute,
-                    "[KEPUTUSAN ADMIN] Laporan diselesaikan. Penjual dinyatakan menang.\n" .
-                    "Catatan: {$notes}\n" .
-                    "Dana telah diteruskan ke penjual."
+                    "Laporan diselesaikan. Penjual dinyatakan menang.\nCatatan admin: {$notes}"
                 );
             } else {
                 // ── PEMBELI MENANG ────────────────────────────────
                 $this->sendAdminSystemMessage($dispute,
-                    "[KEPUTUSAN ADMIN] Laporan diselesaikan. Pembeli dinyatakan menang.\n" .
-                    "Catatan: {$notes}\n" .
-                    "Silakan kirim kembali barang ke penjual dan input nomor resi di aplikasi."
+                    "Laporan diselesaikan. Pembeli dinyatakan menang.\nCatatan admin: {$notes}\nSilakan kirim kembali barang ke penjual dan input nomor resi di aplikasi."
                 );
             }
 
@@ -173,7 +169,7 @@ class AdminDisputeController extends Controller
                 'Admin memaksa konfirmasi penjual telah menerima kembali barang');
 
             $this->sendAdminSystemMessage($dispute,
-                "[INFO] Admin mengkonfirmasi penjual telah menerima barang. Refund sedang diproses."
+                "Admin mengkonfirmasi penjual telah menerima barang. Refund sedang diproses."
             );
 
             // Auto trigger refund
@@ -239,7 +235,7 @@ class AdminDisputeController extends Controller
         $dispute->addLog('admin', $admin->id, 'admin_reviewing', 'Admin mulai meninjau kasus ini');
 
         $this->sendAdminSystemMessage($dispute,
-            "[INFO] Laporan sedang ditinjau oleh admin. Harap menunggu keputusan."
+            "Laporan sedang ditinjau oleh admin. Harap menunggu keputusan."
         );
 
         return back()->with('success', 'Status dispute diperbarui menjadi: Sedang Ditinjau');
@@ -268,7 +264,7 @@ class AdminDisputeController extends Controller
         $request->validate(['message' => 'required|string|max:2000']);
         $dispute = Dispute::with('transaction')->findOrFail($id);
 
-        $text = "👮 [ADMIN] " . $request->message;
+        $text = $request->message;
 
         // Send to buyer
         Message::create([
@@ -383,7 +379,7 @@ class AdminDisputeController extends Controller
         );
 
         $this->sendAdminSystemMessage($dispute,
-            "[REFUND] Rp " . number_format($amount, 0, ',', '.') . " telah dikembalikan ke MeyPay Wallet pembeli."
+            "Rp " . number_format($amount, 0, ',', '.') . " telah dikembalikan ke MeyPay Wallet pembeli."
         );
     }
 
@@ -393,18 +389,18 @@ class AdminDisputeController extends Controller
      */
     private function getDisputeMessages(Dispute $dispute)
     {
-        return Message::where(function ($q) use ($dispute) {
+        $raw = Message::where(function ($q) use ($dispute) {
                 // buyer → seller
                 $q->where(function ($inner) use ($dispute) {
                     $inner->where('sender_id', $dispute->buyer_id)
                           ->where('receiver_id', $dispute->seller_id);
                 })
-                // seller → buyer (termasuk pesan sistem yang dikirim arah ini)
+                // seller → buyer
                 ->orWhere(function ($inner) use ($dispute) {
                     $inner->where('sender_id', $dispute->seller_id)
                           ->where('receiver_id', $dispute->buyer_id);
                 })
-                // admin → buyer saja (menghindari duplikat dari admin→seller)
+                // admin → buyer saja (bukan admin → seller)
                 ->orWhere(function ($inner) use ($dispute) {
                     $inner->whereNotIn('sender_id', [$dispute->buyer_id, $dispute->seller_id])
                           ->where('receiver_id', $dispute->buyer_id);
@@ -413,6 +409,15 @@ class AdminDisputeController extends Controller
             ->with(['sender'])
             ->orderBy('created_at', 'asc')
             ->get();
+
+        // Dedup: hilangkan pesan dengan konten+waktu identik (sisa data lama duplikat di DB)
+        $seen = [];
+        return $raw->filter(function ($msg) use (&$seen) {
+            $key = $msg->sender_id . '|' . $msg->created_at->format('Y-m-d H:i:s') . '|' . substr($msg->message, 0, 100);
+            if (isset($seen[$key])) return false;
+            $seen[$key] = true;
+            return true;
+        })->values();
     }
 
     /**
