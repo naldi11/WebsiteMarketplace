@@ -369,23 +369,18 @@
         <div class="p-6 space-y-3 max-h-96 overflow-y-auto bg-gradient-to-b from-slate-50/60 to-indigo-50/40" id="chatBox">
             @forelse($messages as $msg)
                 @php
-                    $isAdmin  = !in_array($msg->sender_id, [$dispute->buyer_id, $dispute->seller_id]);
-                    $isBuyer  = ($msg->sender_id === $dispute->buyer_id);
-                    $isSystem = str_contains($msg->message, '⚖️') || str_contains($msg->message, '✅')
-                             || str_contains($msg->message, '🔍') || str_contains($msg->message, '📦')
-                             || str_contains($msg->message, '🎉');
+                    $isAdmin  = str_starts_with($msg->message, '[Admin]');
+                    $isBuyer  = (!$isAdmin && $msg->sender_id === $dispute->buyer_id);
+                    $adminText = $isAdmin ? trim(substr($msg->message, 7)) : $msg->message;
                 @endphp
-                @if($isSystem)
-                    <div class="flex justify-center">
-                        <span class="text-[10px] bg-white/60 border border-indigo-100 rounded-full px-3 py-1 text-slate-500 font-mono">
-                            {{ $msg->message }}
-                        </span>
-                    </div>
-                @elseif($isAdmin)
-                    <div class="flex justify-center">
-                        <div class="max-w-sm bg-purple-600/90 text-white px-4 py-2 rounded-2xl text-xs font-medium shadow">
-                            {{ $msg->message }}
-                            <div class="text-purple-200 text-[9px] mt-1 text-right">{{ $msg->created_at->format('H:i') }} · Admin</div>
+                @if($isAdmin)
+                    <div class="flex justify-center my-1">
+                        <div class="max-w-sm w-auto">
+                            <div class="text-[9px] text-center text-purple-400 mb-1 font-semibold uppercase tracking-wide">Admin</div>
+                            <div class="bg-purple-600 text-white px-4 py-2.5 rounded-2xl text-xs font-medium shadow-md shadow-purple-200 text-center">
+                                {{ $adminText }}
+                                <div class="text-purple-300 text-[9px] mt-1">{{ $msg->created_at->format('H:i') }}</div>
+                            </div>
                         </div>
                     </div>
                 @elseif($isBuyer)

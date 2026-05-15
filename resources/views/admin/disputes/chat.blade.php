@@ -93,36 +93,13 @@
                     <div class="p-5 space-y-4">
                         @forelse($messages as $msg)
                             @php
-                                $isBuyer  = $msg->sender_id === $dispute->buyer_id;
-                                $isSeller = $msg->sender_id === $dispute->seller_id;
-                                $isAdmin  = !$isBuyer && !$isSeller;
-                                $isSystem = str_contains($msg->message, '⚖️') || str_contains($msg->message, '✅') || str_contains($msg->message, '🔍') || str_contains($msg->message, '📦') || str_contains($msg->message, '👮') || str_contains($msg->message, 'TAHAPAN') || str_contains($msg->message, 'REFUND BERHASIL') || str_contains($msg->message, 'Catatan Admin');
-                                $cleanAdminMsg = preg_replace('/^[\p{So}\p{Sm}\p{Sk}\p{Sc}\p{Ps}\p{Pe}\s]*\[ADMIN\]\s*/u', '', $msg->message);
-                                $cleanAdminMsg = trim($cleanAdminMsg);
+                                $isAdmin      = str_starts_with($msg->message, '[Admin]');
+                                $isBuyer      = (!$isAdmin && $msg->sender_id === $dispute->buyer_id);
+                                $isSeller     = (!$isAdmin && $msg->sender_id === $dispute->seller_id);
+                                $cleanAdminMsg = $isAdmin ? trim(substr($msg->message, 7)) : $msg->message;
                             @endphp
 
-                            @if($isSystem && !$isAdmin)
-                                {{-- System / Notifikasi Otomatis --}}
-                                <div class="flex justify-center my-3">
-                                    <div class="max-w-lg w-full">
-                                        <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 text-center shadow-sm backdrop-blur">
-                                            <div class="flex items-center justify-center gap-2 mb-1.5">
-                                                <div class="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
-                                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd"
-                                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                                            clip-rule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <span class="text-amber-700 text-[10px] font-black uppercase tracking-widest">Notifikasi Sistem</span>
-                                            </div>
-                                            <p class="text-amber-800 text-[11px] font-semibold whitespace-pre-line leading-relaxed">{{ $msg->message }}</p>
-                                            <p class="text-amber-500 text-[9px] mt-2 font-mono">{{ $msg->created_at?->format('d M Y, H:i') }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            @elseif($isAdmin)
+                            @if($isAdmin)
                                 {{-- Admin Message — purple glass --}}
                                 <div class="flex justify-center my-3">
                                     <div class="max-w-lg w-full">
