@@ -178,7 +178,7 @@ class DisputeControllerApi extends Controller
 
             if ($request->winner === 'seller') {
                 // Langsung selesaikan — lepas dana ke penjual dengan potongan 10%
-                $this->releaseFundsToSeller($dispute->transaction, $dispute, $admin->id);
+                $this->releaseFundsToSeller($dispute);
 
                 $dispute->update(['status' => 'closed', 'resolved_at' => now()]);
                 $dispute->addLog('system', null, 'dispute_closed_seller_won',
@@ -303,101 +303,108 @@ class DisputeControllerApi extends Controller
     // ============================================================
     private function processRefundToBuyer(Dispute $dispute)
     {
-        $transaction = $dispute->transaction;
-        $amount      = $transaction->total_amount; // Refund FULL amount ke pembeli
+        DB::transaction(function () use ($dispute) {
+            // Lock dispute row to prevent concurrent refund
+            $locked = Dispute::lockForUpdate()->find($dispute->id);
+            if (!$locked || $locked->status === 'refunded') {
+                return; // Already refunded — skip
+            }
 
-        $buyerWallet  = Wallet::getOrCreate($dispute->buyer_id);
-        $sellerWallet = Wallet::getOrCreate($dispute->seller_id);
+            $transaction = $locked->transaction;
+            $amount      = $transaction->total_amount;
 
-        // Kembalikan dari pending_balance buyer (escrow) ke balance buyer
-        if ($buyerWallet->pending_balance >= $amount) {
-            $buyerWallet->pending_balance -= $amount;
-            $buyerWallet->save();
-        }
+            // Get-or-create wallets, then lock them
+            $buyerWalletId  = \App\Models\Wallet::getOrCreate($locked->buyer_id)->id;
+            $sellerWalletId = \App\Models\Wallet::getOrCreate($locked->seller_id)->id;
 
-        $buyerWallet->credit(
-            $amount,
-            'refund',
-            "Refund Dispute #D{$dispute->id} - Pesanan #{$transaction->id}",
-            'dispute',
-            $dispute->id
-        );
+            $buyerWallet  = \App\Models\Wallet::lockForUpdate()->findOrFail($buyerWalletId);
+            $sellerWallet = \App\Models\Wallet::lockForUpdate()->findOrFail($sellerWalletId);
 
-        // Update status
-        $dispute->update([
-            'status'      => 'refunded',
-            'refunded_at' => now(),
-            'resolved_at' => now(),
-        ]);
+            // Release escrow from buyer pending balance
+            if ($buyerWallet->pending_balance >= $amount) {
+                $buyerWallet->pending_balance -= $amount;
+                $buyerWallet->save();
+            }
 
-        $transaction->update([
-            'status'             => 'refunded',
-            'funds_released_at'  => now(),
-        ]);
+            // Credit refund to buyer wallet
+            $buyerWallet->credit(
+                $amount,
+                'refund',
+                "Refund Laporan #D{$locked->id} — Pesanan #{$transaction->id}",
+                'dispute',
+                $locked->id
+            );
 
-        $dispute->addLog('system', null, 'refund_processed',
-            "Refund Rp " . number_format($amount, 0, ',', '.') . " berhasil dikreditkan ke wallet pembeli",
-            ['amount' => $amount, 'buyer_balance_after' => $buyerWallet->balance]
-        );
+            // Mark as refunded
+            $locked->update(['status' => 'refunded']);
+            $transaction->update(['status' => 'disputed_refunded', 'buyer_can_rate' => false]);
 
-        // Notifikasi ke chat
-        $this->sendSystemMessageToChat(
-            $transaction,
-            "✅ REFUND BERHASIL!\n" .
-            "Rp " . number_format($amount, 0, ',', '.') . " telah dikembalikan ke MeyPay Wallet Anda.\n" .
-            "Terima kasih atas kesabaran Anda."
-        );
+            $locked->addLog('system', null, 'refunded',
+                "Dana Rp " . number_format($amount, 0, ',', '.') . " dikembalikan ke pembeli"
+            );
+        });
     }
 
     // ============================================================
-    // PRIVATE: Lepas dana ke penjual dengan potongan 10% platform
+    // PRIVATE: Lepas dana ke penjual dengan potongan platform
     // ============================================================
-    private function releaseFundsToSeller(Transaction $transaction, Dispute $dispute, ?int $adminId = null)
+    private function releaseFundsToSeller(Dispute $dispute)
     {
-        $grossAmount  = $transaction->seller_amount;
-        $platformFee  = round($grossAmount * 0.10);
-        $netToSeller  = $grossAmount - $platformFee;
+        DB::transaction(function () use ($dispute) {
+            // Lock dispute row to prevent concurrent release
+            $locked = Dispute::lockForUpdate()->find($dispute->id);
+            if (!$locked || $locked->status === 'closed') {
+                return; // Already closed — skip
+            }
 
-        $buyerWallet  = Wallet::getOrCreate($transaction->buyer_id);
-        $sellerWallet = Wallet::getOrCreate($transaction->seller_id);
+            $transaction = $locked->transaction;
+            $grossAmount = $transaction->seller_amount;
 
-        // Kurangi pending_balance buyer
-        if ($buyerWallet->pending_balance >= $grossAmount) {
-            $buyerWallet->pending_balance -= $grossAmount;
-            $buyerWallet->save();
-        }
+            $feePercent  = (float) optional(
+                \App\Models\SystemSetting::where('key', 'service_fee_percent')->first()
+            )->value ?? 10;
 
-        // Kredit ke penjual (net)
-        $sellerWallet->credit(
-            $netToSeller,
-            'payout',
-            "Penjualan #TXN-{$transaction->id} (setelah potongan 10% platform)",
-            'transaction',
-            $transaction->id
-        );
+            $platformFee = round($grossAmount * $feePercent / 100);
+            $netToSeller = $grossAmount - $platformFee;
 
-        // Catat pendapatan platform menggunakan method yang ada
-        \App\Models\PlatformEarning::recordEarning(
-            $transaction->id,
-            $platformFee,   // service_fee
-            0,              // payment_fee
-            "10% service fee dari TXN #{$transaction->id}"
-        );
+            // Get-or-create wallets, then lock them
+            $buyerWalletId  = \App\Models\Wallet::getOrCreate($locked->buyer_id)->id;
+            $sellerWalletId = \App\Models\Wallet::getOrCreate($locked->seller_id)->id;
 
-        $transaction->update([
-            'status'            => 'completed',
-            'funds_released_at' => now(),
-        ]);
+            $buyerWallet  = \App\Models\Wallet::lockForUpdate()->findOrFail($buyerWalletId);
+            $sellerWallet = \App\Models\Wallet::lockForUpdate()->findOrFail($sellerWalletId);
 
-        if ($dispute) {
-            $dispute->addLog(
-                $adminId ? 'admin' : 'system',
-                $adminId,
-                'funds_released_to_seller',
-                "Dana Rp " . number_format($netToSeller, 0, ',', '.') . " dilepas ke penjual (dipotong 10% = Rp " . number_format($platformFee, 0, ',', '.') . ")",
-                ['gross' => $grossAmount, 'fee' => $platformFee, 'net' => $netToSeller]
+            // Release escrow
+            if ($buyerWallet->pending_balance >= $grossAmount) {
+                $buyerWallet->pending_balance -= $grossAmount;
+                $buyerWallet->save();
+            }
+
+            // Credit net amount to seller
+            $sellerWallet->credit(
+                $netToSeller,
+                'payout',
+                "Penjualan Laporan #D{$locked->id} (dipotong {$feePercent}% platform)",
+                'dispute',
+                $locked->id
             );
-        }
+
+            // Record platform fee
+            \App\Models\PlatformEarning::recordEarning(
+                $transaction->id,
+                $platformFee,
+                0,
+                "{$feePercent}% service fee dari Laporan #D{$locked->id}"
+            );
+
+            // Close dispute and transaction
+            $locked->update(['status' => 'closed']);
+            $transaction->update(['status' => 'completed']);
+
+            $locked->addLog('system', null, 'seller_won',
+                "Dana Rp " . number_format($netToSeller, 0, ',', '.') . " diteruskan ke penjual"
+            );
+        });
     }
 
     // ============================================================
