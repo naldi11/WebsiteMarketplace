@@ -102,9 +102,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/seller/dashboard', [\App\Http\Controllers\Api\SellerControllerApi::class, 'dashboard']);
     Route::post('/seller/withdraw', [\App\Http\Controllers\Api\SellerControllerApi::class, 'withdraw']);
 
-    // Higher level admin tasks (Report submission)
-    Route::post('/reports', [\App\Http\Controllers\Api\ReportControllerApi::class, 'store']);
-
     // Reviews
     Route::post('/reviews/{transaction}', [\App\Http\Controllers\Api\ReviewControllerApi::class, 'store']);
 
@@ -122,12 +119,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/verify-pin', [\App\Http\Controllers\Api\WalletControllerApi::class, 'verifyPin']);
         Route::post('/verify-payment', [\App\Http\Controllers\Api\WalletControllerApi::class, 'verifyPayment']);
     });
-
-    // Disputes (Laporan Masalah)
-    Route::post('/disputes/{transactionId}', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'openDispute']);
-    Route::get('/disputes/{transactionId}', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'show']);
-    Route::post('/disputes/{id}/buyer-ship-back', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'buyerShipBack']);
-    Route::post('/disputes/{id}/seller-confirm-return', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'sellerConfirmReturn']);
 
     // Chat System
     Route::prefix('chat')->group(function () {

@@ -8,17 +8,8 @@ use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
-    private function checkAdmin()
-    {
-        if (auth()->user()->role !== 'admin') {
-            abort(403, 'Akses Ditolak. Halaman ini khusus Admin.');
-        }
-    }
-
     public function dashboard(Request $request)
     {
-        $this->checkAdmin();
-        
         $period = $request->query('period', 'all');
         $startDate = null;
         $endDate = null;
@@ -116,7 +107,8 @@ class AdminController extends Controller
         $chartLabels = [];
         $chartSales = [];
         $chartProfit = [];
-        
+        $chartOther = [];
+
         $chartQuery = (clone $transactionQuery)->where('status', 'completed');
 
         if ($period === 'today') {
@@ -180,8 +172,7 @@ class AdminController extends Controller
 
     public function users(Request $request)
     {
-        $this->checkAdmin();
-        $tab = $request->query('tab', 'all');
+$tab = $request->query('tab', 'all');
 
         $query = User::where('role', '!=', 'admin');
 
@@ -200,8 +191,7 @@ class AdminController extends Controller
 
     public function toggleSuspendUser(Request $request, $id)
     {
-        $this->checkAdmin();
-        $user = User::findOrFail($id);
+$user = User::findOrFail($id);
         
         if ($user->id === auth()->id() || $user->role === 'admin') {
             return back()->with('error', 'Admin tidak dapat disuspend.');
@@ -216,8 +206,7 @@ class AdminController extends Controller
 
     public function deleteUser($id)
     {
-        $this->checkAdmin();
-        $user = User::findOrFail($id);
+$user = User::findOrFail($id);
 
         if ($user->id === auth()->id() || $user->role === 'admin') {
             return back()->with('error', 'Admin tidak dapat dihapus.');
@@ -230,8 +219,7 @@ class AdminController extends Controller
 
     public function transactions(Request $request)
     {
-        $this->checkAdmin();
-        $tab = $request->query('tab', 'all');
+$tab = $request->query('tab', 'all');
 
         $query = Transaction::with(['buyer', 'seller', 'items.product'])->latest();
 
@@ -254,14 +242,12 @@ class AdminController extends Controller
 
     public function showTransaction(Transaction $transaction)
     {
-        $this->checkAdmin();
-        $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category', 'trackingLogs']);
+$transaction->load(['buyer', 'seller', 'items.product', 'items.product.category', 'trackingLogs']);
         return view('admin.transactions.show', compact('transaction'));
     }
 
     public function verifyPayment(Transaction $transaction)
     {
-        $this->checkAdmin();
 
         if ($transaction->status !== 'pending') {
             return back()->with('error', 'Transaksi tidak valid untuk diverifikasi.');
@@ -292,7 +278,6 @@ class AdminController extends Controller
 
     public function rejectPayment(Request $request, Transaction $transaction)
     {
-        $this->checkAdmin();
 
         if ($transaction->status !== 'pending') {
             return back()->with('error', 'Transaksi tidak valid untuk ditolak.');
@@ -322,7 +307,6 @@ class AdminController extends Controller
 
     public function releaseFunds(Request $request, Transaction $transaction)
     {
-        $this->checkAdmin();
 
         $request->validate([
             'transfer_proof' => 'required|file|mimes:jpeg,png,jpg,pdf|max:2048'
@@ -413,15 +397,13 @@ class AdminController extends Controller
     // Payment Methods Management
     public function paymentMethods()
     {
-        $this->checkAdmin();
-        $paymentMethods = \App\Models\PaymentMethod::orderBy('sort_order')->get();
+$paymentMethods = \App\Models\PaymentMethod::orderBy('sort_order')->get();
         return view('admin.payment_methods.index', compact('paymentMethods'));
     }
 
     public function storePaymentMethod(Request $request)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'code' => 'required|unique:payment_methods,code',
             'name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:255',
@@ -443,8 +425,7 @@ class AdminController extends Controller
 
     public function updatePaymentMethod(Request $request, \App\Models\PaymentMethod $paymentMethod)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'code' => 'required|unique:payment_methods,code,' . $paymentMethod->id,
             'name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:255',
@@ -466,23 +447,20 @@ class AdminController extends Controller
 
     public function destroyPaymentMethod(\App\Models\PaymentMethod $paymentMethod)
     {
-        $this->checkAdmin();
-        $paymentMethod->delete();
+$paymentMethod->delete();
         return back()->with('success', 'Metode pembayaran berhasil dihapus!');
     }
 
     public function vouchers()
     {
-        $this->checkAdmin();
-        $vouchers = \App\Models\Voucher::latest()->get();
+$vouchers = \App\Models\Voucher::latest()->get();
         $categories = \App\Models\Category::all();
         return view('admin.vouchers', compact('vouchers', 'categories'));
     }
 
     public function storeVoucher(Request $request)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|unique:vouchers,code',
             'discount_type' => 'required|in:fixed,percent',
@@ -508,8 +486,7 @@ class AdminController extends Controller
 
     public function updateVoucher(Request $request, \App\Models\Voucher $voucher)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|unique:vouchers,code,' . $voucher->id,
             'discount_type' => 'required|in:fixed,percent',
@@ -535,29 +512,25 @@ class AdminController extends Controller
 
     public function destroyVoucher(\App\Models\Voucher $voucher)
     {
-        $this->checkAdmin();
-        $voucher->delete();
+$voucher->delete();
         return back()->with('success', 'Voucher berhasil dihapus!');
     }
 
     // Category Management
     public function categories()
     {
-        $this->checkAdmin();
-        $categories = \App\Models\Category::withCount('products')->latest()->get();
+$categories = \App\Models\Category::withCount('products')->latest()->get();
         return view('admin.categories.index', compact('categories'));
     }
 
     public function createCategory()
     {
-        $this->checkAdmin();
-        return view('admin.categories.create');
+return view('admin.categories.create');
     }
 
     public function storeCategory(Request $request)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'name' => 'required|string|max:255',
             'icon' => 'nullable|image|max:2048',
         ]);
@@ -578,14 +551,12 @@ class AdminController extends Controller
 
     public function editCategory(\App\Models\Category $category)
     {
-        $this->checkAdmin();
-        return view('admin.categories.edit', compact('category'));
+return view('admin.categories.edit', compact('category'));
     }
 
     public function updateCategory(Request $request, \App\Models\Category $category)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'name' => 'required|string|max:255',
             'icon' => 'nullable|image|max:2048',
         ]);
@@ -609,8 +580,7 @@ class AdminController extends Controller
 
     public function destroyCategory(\App\Models\Category $category)
     {
-        $this->checkAdmin();
-        if ($category->products()->count() > 0) {
+if ($category->products()->count() > 0) {
             return back()->with('error', 'Kategori tidak bisa dihapus karena masih memiliki produk.');
         }
 
@@ -624,7 +594,6 @@ class AdminController extends Controller
     // Balance Management
     public function balances()
     {
-        $this->checkAdmin();
 
         // Seller balances from completed transactions
         $sellers = User::whereHas('sellerTransactions', function ($q) {
@@ -678,15 +647,13 @@ class AdminController extends Controller
 
     public function settings()
     {
-        $this->checkAdmin();
-        $settings = \App\Models\SystemSetting::all();
+$settings = \App\Models\SystemSetting::all();
         return view('admin.settings.index', compact('settings'));
     }
 
     public function updateSettings(Request $request)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'settings' => 'required|array',
         ]);
 
@@ -700,15 +667,13 @@ class AdminController extends Controller
     // Ad Banners Management
     public function adBanners()
     {
-        $this->checkAdmin();
-        $adBanners = \App\Models\AdBanner::latest()->get();
+$adBanners = \App\Models\AdBanner::latest()->get();
         return view('admin.ad_banners.index', compact('adBanners'));
     }
 
     public function storeAdBanner(Request $request)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'title' => 'required|string|max:255',
             'image' => 'required|image|max:2048',
         ]);
@@ -726,8 +691,7 @@ class AdminController extends Controller
 
     public function updateAdBanner(Request $request, \App\Models\AdBanner $adBanner)
     {
-        $this->checkAdmin();
-        $request->validate([
+$request->validate([
             'title' => 'required|string|max:255',
             'image' => 'nullable|image|max:2048',
         ]);
@@ -751,67 +715,16 @@ class AdminController extends Controller
 
     public function destroyAdBanner(\App\Models\AdBanner $adBanner)
     {
-        $this->checkAdmin();
-        if ($adBanner->image) {
+if ($adBanner->image) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($adBanner->image);
         }
         $adBanner->delete();
         return back()->with('success', 'Banner Iklan dihapus.');
     }
 
-    // Reports Management
-    public function reports(Request $request)
-    {
-        $this->checkAdmin();
-        $status = $request->query('status', 'pending');
-        
-        $query = \App\Models\Report::with(['user', 'transaction.buyer', 'transaction.seller'])->latest();
-        
-        if ($status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        $reports = $query->paginate(15)->withQueryString();
-        
-        $counts = [
-            'pending' => \App\Models\Report::where('status', 'pending')->count(),
-            'resolved' => \App\Models\Report::where('status', 'resolved')->count(),
-            'dismissed' => \App\Models\Report::where('status', 'dismissed')->count(),
-            'all' => \App\Models\Report::count(),
-        ];
-
-        return view('admin.reports.index', compact('reports', 'counts', 'status'));
-    }
-
-    public function showReport(\App\Models\Report $report)
-    {
-        $this->checkAdmin();
-        $report->load(['user', 'transaction.buyer', 'transaction.seller', 'transaction.items.product']);
-        return view('admin.reports.show', compact('report'));
-    }
-
-    public function updateReport(Request $request, \App\Models\Report $report)
-    {
-        $this->checkAdmin();
-        $request->validate([
-            'status' => 'required|in:pending,resolved,dismissed',
-            'admin_note' => 'nullable|string|max:1000',
-        ]);
-
-        $report->update([
-            'status' => $request->status,
-            'admin_note' => $request->admin_note,
-        ]);
-
-        return redirect()->route('admin.reports')->with('success', 'Laporan berhasil diperbarui.');
-    }
-
-
-
     public function walletLogs(Request $request)
     {
-        $this->checkAdmin();
-        $query = \App\Models\WalletTransaction::with(['wallet.user'])->latest();
+$query = \App\Models\WalletTransaction::with(['wallet.user'])->latest();
         
         if ($request->filled('search')) {
             $search = $request->search;
@@ -830,25 +743,10 @@ class AdminController extends Controller
         return view('admin.wallet_logs', compact('logs'));
     }
 
-    public function resolveDispute(Request $request, \App\Models\Report $report)
-    {
-        $this->checkAdmin();
-        $request->validate([
-            'resolution' => 'required|string',
-        ]);
-
-        $report->update([
-            'status' => 'resolved',
-            'admin_note' => $request->resolution,
-        ]);
-
-        return back()->with('success', 'Perselisihan berhasil diselesaikan.');
-    }
-
     public function printInvoice(\App\Models\Transaction $transaction)
     {
-        $this->checkAdmin();
-        $transaction->load(['items.product', 'buyer', 'shippingAddressRecord']);
+$transaction->load(['items.product', 'buyer', 'shippingAddressRecord']);
         return view('admin.transactions.invoice', compact('transaction'));
     }
 }
+

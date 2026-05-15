@@ -179,8 +179,6 @@ class TransactionControllerApi extends Controller
      */
     public function storeCart(Request $request)
     {
-        \Log::info("Checkout Request:", $request->all());
-
         $validator = Validator::make($request->all(), [
             'user_address_id' => 'required|exists:user_addresses,id',
             'payment_method_id' => 'required|exists:payment_methods,id',
@@ -190,7 +188,6 @@ class TransactionControllerApi extends Controller
         ]);
 
         if ($validator->fails()) {
-            \Log::error("StoreCart Validation Failed:", $validator->errors()->toArray());
             return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
         }
 
@@ -267,6 +264,7 @@ class TransactionControllerApi extends Controller
                 'discount_total' => $discount
             ]);
 
+            $cartIds = [];
             foreach ($carts as $cart) {
                 TransactionDetail::create([
                     'transaction_id' => $transaction->id,
@@ -276,8 +274,9 @@ class TransactionControllerApi extends Controller
                 ]);
 
                 $cart->product->decrement('stock', $cart->quantity);
-                Cart::destroy($cart->id); // Delete individual checked out cart
+                $cartIds[] = $cart->id;
             }
+            Cart::whereIn('id', $cartIds)->delete();
 
             DB::commit();
 
@@ -356,7 +355,6 @@ class TransactionControllerApi extends Controller
 
         $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
         $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
-        $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
 
         $shippingCost = 0;
         $distanceKm = null;
@@ -411,10 +409,8 @@ class TransactionControllerApi extends Controller
             }
         }
 
-        $serviceFeeSetting = \App\Models\SystemSetting::where('key', 'service_fee_percent')->first();
-        $serviceFeePercent = $serviceFeeSetting ? (float)$serviceFeeSetting->value : 10;
         $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
-        
+
         $adminFee = 0;
         // Not passing payment_method for preview usually, but if provided, calculate it. 
         if ($request->filled('payment_method_id')) {
@@ -623,6 +619,7 @@ class TransactionControllerApi extends Controller
                 'changed_by' => $userId
             ]);
 
+            $cartIdsToDelete = [];
             foreach ($itemsToCheckout as $item) {
                 TransactionDetail::create([
                     'transaction_id' => $transaction->id,
@@ -633,8 +630,11 @@ class TransactionControllerApi extends Controller
                 $item['product']->decrement('stock', $item['quantity']);
 
                 if (isset($item['cart_id'])) {
-                    Cart::destroy($item['cart_id']);
+                    $cartIdsToDelete[] = $item['cart_id'];
                 }
+            }
+            if (!empty($cartIdsToDelete)) {
+                Cart::whereIn('id', $cartIdsToDelete)->delete();
             }
 
 
@@ -708,7 +708,7 @@ class TransactionControllerApi extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error("UploadProof Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+            return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan saat mengunggah bukti pembayaran.'], 500);
         }
     }
 
@@ -829,19 +829,6 @@ class TransactionControllerApi extends Controller
         ]);
 
         if ($validator->fails()) {
-            \Log::error("ConfirmReceived Validation Failed:", $validator->errors()->toArray());
-            if ($request->hasFile('files')) {
-                foreach ($request->file('files') as $index => $file) {
-                    \Log::error("File $index Error:", [
-                        'name' => $file->getClientOriginalName(),
-                        'error' => $file->getError(),
-                        'size' => $file->getSize(),
-                        'valid' => $file->isValid(),
-                    ]);
-                }
-            } else {
-                \Log::error("No files found in request OR files invalid in PHP (exceeds post_max_size?). All data:", $request->all());
-            }
             return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
         }
 
@@ -872,7 +859,8 @@ class TransactionControllerApi extends Controller
         // ============================================================
         try {
             $grossAmount = $transaction->seller_amount;
-            $platformFee = round($grossAmount * 0.10);
+            $feePercent = (float) optional(\App\Models\SystemSetting::where('key', 'service_fee_percent')->first())->value ?? 10;
+            $platformFee = round($grossAmount * $feePercent / 100);
             $netToSeller = $grossAmount - $platformFee;
 
             $buyerWallet  = \App\Models\Wallet::getOrCreate($transaction->buyer_id);

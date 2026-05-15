@@ -14,15 +14,6 @@ Route::get('/home', function () {
 })->name('home');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 
-// TEMPORARY: Test route for reviews without auth - DEBUG 403
-Route::get('/reviews/{id}', function ($id) {
-    try {
-        $transaction = \App\Models\Transaction::findOrFail($id);
-        return "Transaction found! ID: {$transaction->id}, Status: {$transaction->status}";
-    } catch (\Exception $e) {
-        return "Error: " . $e->getMessage();
-    }
-});
 
 Route::middleware('guest')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
@@ -109,11 +100,6 @@ Route::middleware('auth')->group(function () {
         Route::put('/categories/{category}', [App\Http\Controllers\AdminController::class, 'updateCategory'])->name('admin.categories.update');
         Route::delete('/categories/{category}', [App\Http\Controllers\AdminController::class, 'destroyCategory'])->name('admin.categories.destroy');
 
-        // Reports
-        Route::get('/reports', [App\Http\Controllers\AdminController::class, 'reports'])->name('admin.reports');
-        Route::get('/reports/{report}', [App\Http\Controllers\AdminController::class, 'showReport'])->name('admin.reports.show');
-        Route::post('/reports/{report}/update', [App\Http\Controllers\AdminController::class, 'updateReport'])->name('admin.reports.update');
-
         // Balances
         Route::get('/balances', [App\Http\Controllers\AdminController::class, 'balances'])->name('admin.balances');
         Route::get('/wallet-logs', [App\Http\Controllers\AdminController::class, 'walletLogs'])->name('admin.wallet_logs');
@@ -144,7 +130,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/transactions/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('transactions.cancel');
 
     Route::post('/reviews/{transaction}', [ReviewController::class, 'store'])->name('reviews.store');
-    Route::post('/reports', [App\Http\Controllers\ReportController::class, 'store'])->name('reports.store');
 
     // Profile & Wishlist
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

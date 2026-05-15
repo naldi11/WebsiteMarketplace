@@ -1,15 +1,15 @@
 @extends('layouts.admin')
 
-@section('title', 'Payment Protocol')
+@section('title', 'Metode Pembayaran')
 
 @section('content')
 <div class="pt-0 pb-8">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div>
-            <h1 class="text-4xl font-black tracking-tighter uppercase italic text-black">Metode Pembayaran</h1>
-            <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest text-black">Manajemen Gateway Transaksi</p>
+            <h1 class="text-4xl font-black tracking-tighter uppercase italic text-slate-800">Metode Pembayaran</h1>
+            <p class="text-slate-500 mt-1 font-mono text-xs uppercase tracking-widest">Manajemen Gateway Transaksi</p>
         </div>
-        <button onclick="openAddModal()" class="px-6 py-3 bg-black text-white border-[3px] border-black text-sm font-black uppercase tracking-tighter hover:bg-white hover:text-black transition-all neo-brutalism italic flex items-center gap-2">
+        <button onclick="openAddModal()" class="px-6 py-3 btn-gradient-teal text-white rounded-xl text-sm font-black uppercase tracking-tighter italic flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -17,11 +17,11 @@
         </button>
     </div>
 
-    <!-- Payment Methods Table - Neo Brutalism -->
-    <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden mb-12">
+    <!-- Payment Methods Table - Glassmorphism -->
+    <div class="glass-card overflow-hidden mb-12">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-                <thead class="bg-gray-100 border-b-[3px] border-black text-black font-black uppercase italic">
+                <thead class="glass-table-header text-slate-600 font-black uppercase">
                     <tr>
                         <th class="px-8 py-6">Nama Gateway</th>
                         <th class="px-8 py-6">Nomor Akun</th>
@@ -31,56 +31,56 @@
                         <th class="px-8 py-6 text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y-2 divide-gray-100 font-bold">
+                <tbody class="divide-y divide-indigo-50 font-bold">
                     @forelse($paymentMethods as $pm)
-                    <tr class="hover:bg-gray-50 transition-all">
+                    <tr class="hover:bg-white/40 transition-all">
                         <td class="px-8 py-6 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="h-12 w-12 border-2 border-black flex items-center justify-center bg-black text-white text-lg font-black italic">
+                                <div class="h-12 w-12 border border-indigo-100 flex items-center justify-center bg-gradient-to-br from-teal-500 to-cyan-500 text-white text-lg font-black italic rounded-xl">
                                     {{ $pm->icon ?? '💳' }}
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-black text-black uppercase italic tracking-tighter leading-none">{{ $pm->name }}</div>
-                                    <div class="text-[9px] text-gray-400 font-mono tracking-widest uppercase mt-1">{{ $pm->code }}</div>
+                                    <div class="text-sm font-black text-slate-800 uppercase italic tracking-tighter leading-none">{{ $pm->name }}</div>
+                                    <div class="text-[9px] text-slate-400 font-mono tracking-widest uppercase mt-1">{{ $pm->code }}</div>
                                 </div>
                             </div>
                         </td>
                         <td class="px-8 py-6 whitespace-nowrap">
-                            <span class="font-mono bg-white px-3 py-1 border-2 border-black text-[10px] uppercase font-black {{ $pm->account_number ? 'text-black' : 'text-gray-300' }}">
-                                {{ $pm->account_number ?? 'NULL_PTR' }}
+                            <span class="font-mono bg-white/60 px-3 py-1 border border-indigo-100 text-[10px] uppercase font-black rounded-lg {{ $pm->account_number ? 'text-slate-800' : 'text-slate-300' }}">
+                                {{ $pm->account_number ?? '-' }}
                             </span>
                         </td>
                         <td class="px-8 py-6 whitespace-nowrap">
-                            <span class="px-3 py-1 border-2 border-black text-[9px] font-black uppercase tracking-widest bg-gray-100 italic">
+                            <span class="px-3 py-1 border border-indigo-100 text-[9px] font-black uppercase tracking-widest bg-slate-50 italic rounded-lg text-slate-800">
                                 {{ $pm->type_label }}
                             </span>
                         </td>
                         <td class="px-8 py-6 whitespace-nowrap">
                             @if($pm->admin_fee > 0 || $pm->admin_fee_percent > 0)
-                                <div class="flex flex-col text-[10px] text-black font-black italic">
+                                <div class="flex flex-col text-[10px] text-slate-800 font-black italic">
                                     @if($pm->admin_fee > 0)
                                         <span>IDR_{{ number_format($pm->admin_fee, 0, ',', '.') }}</span>
                                     @endif
                                     @if($pm->admin_fee_percent > 0)
-                                        <span class="text-gray-500">+{{ floatval($pm->admin_fee_percent) }}%</span>
+                                        <span class="text-slate-500">+{{ floatval($pm->admin_fee_percent) }}%</span>
                                     @endif
                                 </div>
                             @else
-                                <span class="text-gray-300 italic text-[10px] font-mono">GRATIS</span>
+                                <span class="text-slate-300 italic text-[10px] font-mono">GRATIS</span>
                             @endif
                         </td>
                         <td class="px-8 py-6 whitespace-nowrap">
-                            <span class="px-3 py-1 border-2 border-black text-[9px] font-black uppercase tracking-widest {{ $pm->is_active ? 'bg-black text-white' : 'bg-white text-black' }}">
+                            <span class="{{ $pm->is_active ? 'badge-active' : 'badge-inactive' }}">
                                 {{ $pm->is_active ? 'AKTIF' : 'NONAKTIF' }}
                             </span>
                         </td>
                         <td class="px-8 py-6 text-right whitespace-nowrap">
                             <div class="flex justify-end gap-3 font-black uppercase italic text-[10px]">
-                                <button onclick='editPaymentMethod(@json($pm))' class="px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all">Edit</button>
+                                <button onclick='editPaymentMethod(@json($pm))' class="px-4 py-2 btn-outline rounded-xl">Edit</button>
                                 <form action="{{ route('admin.payment_methods.destroy', $pm) }}" method="POST" class="inline-block" onsubmit="return confirm('Hapus metode {{ $pm->name }}?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="px-4 py-2 bg-black text-white border-2 border-black hover:bg-white hover:text-black transition-all">Hapus</button>
+                                    <button type="submit" class="px-4 py-2 btn-danger text-white rounded-xl">Hapus</button>
                                 </form>
                             </div>
                         </td>
@@ -89,8 +89,8 @@
                     <tr>
                         <td colspan="6" class="px-8 py-24 text-center">
                             <div class="flex flex-col items-center">
-                                <div class="w-16 h-16 border-[3px] border-black flex items-center justify-center font-black text-2xl mb-4 italic">!</div>
-                                <p class="text-xs font-black uppercase tracking-widest text-gray-400 italic">Belum Ada Metode Pembayaran</p>
+                                <div class="w-16 h-16 border border-indigo-100 flex items-center justify-center font-black text-2xl mb-4 italic rounded-xl text-slate-400">!</div>
+                                <p class="text-xs font-black uppercase tracking-widest text-slate-400 italic">Belum Ada Metode Pembayaran</p>
                             </div>
                         </td>
                     </tr>
@@ -101,17 +101,17 @@
     </div>
 </div>
 
-<!-- Modal Tambah/Edit Neo Brutalism -->
+<!-- Modal Tambah/Edit Glassmorphism -->
 <div id="paymentModal" class="fixed inset-0 bg-black/60 hidden z-50 overflow-y-auto transition-all duration-200 backdrop-blur-sm">
     <div class="min-h-screen px-4 text-center flex items-center justify-center">
-        <div class="inline-block w-full max-w-xl p-0 my-8 text-left align-middle bg-white transform transition-all border-[4px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]">
-            
-            <div class="bg-black p-8 text-white flex justify-between items-center">
+        <div class="inline-block w-full max-w-xl p-0 my-8 text-left align-middle bg-white rounded-2xl transform transition-all border border-white/50 shadow-2xl">
+
+            <div class="gradient-header-teal p-8 text-white flex justify-between items-center rounded-t-2xl">
                 <div>
                     <h3 class="text-3xl font-black uppercase italic tracking-tighter" id="modalTitle">Konfigurasi Gateway</h3>
-                    <p class="text-gray-400 text-[10px] mt-1 font-mono uppercase tracking-widest">Atur Metode Penerimaan Dana</p>
+                    <p class="text-white/70 text-[10px] mt-1 font-mono uppercase tracking-widest">Atur Metode Penerimaan Dana</p>
                 </div>
-                <button onclick="closeModal()" class="border-2 border-white w-10 h-10 flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                <button onclick="closeModal()" class="border border-white/50 w-10 h-10 flex items-center justify-center hover:bg-white/20 transition-all rounded-lg">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -122,71 +122,71 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Kode</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Kode</label>
                         <input type="text" name="code" id="pCode" required placeholder="bank_bca"
-                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black uppercase text-sm shadow-lg">
                     </div>
-                    
+
                     <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Nama Tampilan</label>
-                        <input type="text" name="name" id="pName" required placeholder="BCA Protocol"
-                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black uppercase italic text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Nama Tampilan</label>
+                        <input type="text" name="name" id="pName" required placeholder="Contoh: Transfer BCA"
+                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black uppercase italic text-sm shadow-lg">
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Nomor Rekening</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Nomor Rekening</label>
                         <input type="text" name="account_number" id="pAccountNumber" placeholder="1234xxx"
-                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-mono font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-mono font-black text-lg shadow-lg">
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Tipe Pembayaran</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Tipe Pembayaran</label>
                         <select name="type" id="pType" required
-                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black uppercase italic text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                            <option value="bank_transfer">BANK_TRANSFER</option>
-                            <option value="ewallet">E_WALLET</option>
-                            <option value="qris">QRIS_SCAN</option>
-                            <option value="credit_card">CREDIT_CARD</option>
-                            <option value="cod">CASH_ON_DELIVERY</option>
+                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black uppercase italic text-sm shadow-lg">
+                            <option value="bank_transfer">Transfer Bank</option>
+                            <option value="ewallet">Dompet Digital</option>
+                            <option value="qris">QRIS</option>
+                            <option value="credit_card">Kartu Kredit</option>
+                            <option value="cod">Bayar di Tempat (COD)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Ikon</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Ikon</label>
                         <input type="text" name="icon" id="pIcon" placeholder="🏦" maxlength="10"
-                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all text-center text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all text-center text-2xl shadow-lg">
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Biaya Tetap (IDR)</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Biaya Tetap (IDR)</label>
                         <input type="number" name="admin_fee" id="pAdminFee" value="0" step="0.01"
-                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black text-lg shadow-lg">
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Biaya Persentase (%)</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Biaya Persentase (%)</label>
                         <input type="number" name="admin_fee_percent" id="pAdminFeePercent" value="0" step="0.01" max="100"
-                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black text-lg shadow-lg">
                     </div>
 
                     <div class="flex items-center pt-6 md:col-span-2">
-                        <label class="flex items-center cursor-pointer gap-4 p-4 border-[3px] border-black bg-gray-50 w-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <label class="flex items-center cursor-pointer gap-4 p-4 border border-indigo-100 bg-white/40 w-full shadow-lg rounded-xl">
                             <input type="checkbox" name="is_active" id="pIsActive" value="1" checked
-                                class="w-8 h-8 text-black border-[3px] border-black rounded-none focus:ring-0">
-                            <span class="text-xs font-black uppercase italic tracking-widest">Metode ini AKTIF</span>
+                                class="w-8 h-8 text-teal-500 border border-indigo-100 rounded focus:ring-0">
+                            <span class="text-xs font-black uppercase italic tracking-widest text-slate-800">Metode ini AKTIF</span>
                         </label>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Instruksi Pembayaran</label>
-                        <textarea name="instructions" id="pInstructions" rows="3" placeholder="Input execution steps..."
-                            class="w-full px-6 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black italic uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"></textarea>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Instruksi Pembayaran</label>
+                        <textarea name="instructions" id="pInstructions" rows="3" placeholder="Tulis langkah-langkah cara pembayaran..."
+                            class="w-full px-6 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black italic uppercase text-xs shadow-lg"></textarea>
                     </div>
                 </div>
 
                 <div class="mt-12 flex gap-6">
-                    <button type="button" onclick="closeModal()" class="flex-1 px-8 py-5 text-sm font-black border-[3px] border-black hover:bg-black hover:text-white transition-all uppercase italic">Batal</button>
-                    <button type="submit" class="flex-1 px-8 py-5 text-sm font-black bg-black text-white border-[3px] border-black hover:bg-white hover:text-black transition-all uppercase italic shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">Simpan</button>
+                    <button type="button" onclick="closeModal()" class="flex-1 px-8 py-5 text-sm font-black btn-outline rounded-xl uppercase italic">Batal</button>
+                    <button type="submit" class="flex-1 px-8 py-5 text-sm font-black btn-gradient-teal text-white rounded-xl uppercase italic shadow-xl">Simpan</button>
                 </div>
             </form>
         </div>
@@ -201,13 +201,13 @@
         document.getElementById('paymentForm').reset();
         document.getElementById('paymentForm').action = "{{ route('admin.payment_methods.store') }}";
         document.getElementById('formMethod').value = 'POST';
-        document.getElementById('modalTitle').innerText = 'Gateway Config';
+        document.getElementById('modalTitle').innerText = 'Konfigurasi Pembayaran';
     }
 
     function openAddModal() {
         const modal = document.getElementById('paymentModal');
         modal.classList.remove('hidden');
-        document.getElementById('modalTitle').innerText = 'Register Entry';
+        document.getElementById('modalTitle').innerText = 'Tambah Metode Pembayaran';
         document.getElementById('paymentForm').action = "{{ route('admin.payment_methods.store') }}";
         document.getElementById('formMethod').value = 'POST';
     }
@@ -215,10 +215,10 @@
     function editPaymentMethod(pm) {
         const modal = document.getElementById('paymentModal');
         modal.classList.remove('hidden');
-        document.getElementById('modalTitle').innerText = 'Modify Protocol';
+        document.getElementById('modalTitle').innerText = 'Edit Metode Pembayaran';
         document.getElementById('paymentForm').action = `/admin/payment-methods/${pm.id}`;
         document.getElementById('formMethod').value = 'PUT';
-        
+
         document.getElementById('pCode').value = pm.code || '';
         document.getElementById('pName').value = pm.name || '';
         document.getElementById('pAccountNumber').value = pm.account_number || '';
