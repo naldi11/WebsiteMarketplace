@@ -722,9 +722,26 @@ if ($adBanner->image) {
         return back()->with('success', 'Banner Iklan dihapus.');
     }
 
+    public function notificationsCheck(Request $request)
+    {
+        $openCount  = \App\Models\Dispute::whereIn('status', ['open', 'admin_reviewing'])->count();
+        $latestId   = \App\Models\Dispute::whereIn('status', ['open', 'admin_reviewing'])->max('id') ?? 0;
+        $lastSeenId = $request->session()->get('admin_last_dispute_id', 0);
+
+        $hasNew = $latestId > $lastSeenId;
+        if ($hasNew) {
+            $request->session()->put('admin_last_dispute_id', $latestId);
+        }
+
+        return response()->json([
+            'open_count' => $openCount,
+            'has_new'    => $hasNew,
+        ]);
+    }
+
     public function walletLogs(Request $request)
     {
-$query = \App\Models\WalletTransaction::with(['wallet.user'])->latest();
+        $query = \App\Models\WalletTransaction::with(['wallet.user'])->latest();
         
         if ($request->filled('search')) {
             $search = $request->search;

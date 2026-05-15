@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Admin Panel - @yield('title', 'Techno Market')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -185,10 +186,33 @@
                             {{ $isActive
                                 ? 'nav-active-'.$item['color'].' text-white shadow-lg'
                                 : 'text-white/65 hover:text-white hover:bg-white/10' }}">
-                        <svg class="w-4.5 h-4.5 flex-shrink-0 {{ $isActive ? 'text-white' : 'text-white/60' }}" style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $item['icon'] }}"/>
-                        </svg>
-                        <span class="tracking-tight">{{ $item['label'] }}</span>
+                        <div class="relative flex-shrink-0">
+                            <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                class="{{ $isActive ? 'text-white' : 'text-white/60' }}">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $item['icon'] }}"/>
+                            </svg>
+                            @if($item['route'] === 'admin.disputes.index' && ($disputeNavBadge ?? 0) > 0)
+                                <span id="disputeNavBadge"
+                                    class="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-0.5 leading-none">
+                                    {{ $disputeNavBadge > 99 ? '99+' : $disputeNavBadge }}
+                                </span>
+                            @else
+                                @if($item['route'] === 'admin.disputes.index')
+                                    <span id="disputeNavBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-0.5 leading-none"></span>
+                                @endif
+                            @endif
+                        </div>
+                        <span class="tracking-tight flex-1">{{ $item['label'] }}</span>
+                        @if($item['route'] === 'admin.disputes.index' && ($disputeNavBadge ?? 0) > 0)
+                            <span id="disputeTextBadge"
+                                class="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                                {{ $disputeNavBadge > 99 ? '99+' : $disputeNavBadge }}
+                            </span>
+                        @else
+                            @if($item['route'] === 'admin.disputes.index')
+                                <span id="disputeTextBadge" class="hidden bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"></span>
+                            @endif
+                        @endif
                     </a>
                 @endforeach
 
@@ -284,5 +308,109 @@
     </div>
 
     @stack('scripts')
+
+<script>
+(function () {
+    // ── Notifikasi Admin: polling + Web Notification seperti WhatsApp ──
+
+    const POLL_INTERVAL = 12000; // 12 detik
+    const CHECK_URL     = '{{ route("admin.notifications.check") }}';
+    const CSRF          = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    // Sound via Web Audio API (tidak butuh file mp3)
+    function playNotifSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const buf = ctx.createBuffer(1, ctx.sampleRate * 0.4, ctx.sampleRate);
+            const ch  = buf.getChannelData(0);
+            for (let i = 0; i < buf.length; i++) {
+                ch[i] = Math.sin(2 * Math.PI * 880 * i / ctx.sampleRate)
+                       * Math.exp(-5 * i / buf.length)
+                       * 0.4;
+            }
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(ctx.destination);
+            src.start();
+        } catch (_) {}
+    }
+
+    // Update badge di sidebar
+    function updateBadge(count) {
+        const iconBadge = document.getElementById('disputeNavBadge');
+        const textBadge = document.getElementById('disputeTextBadge');
+        const label = count > 99 ? '99+' : String(count);
+
+        [iconBadge, textBadge].forEach(el => {
+            if (!el) return;
+            if (count > 0) {
+                el.textContent = label;
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+
+        // Update judul tab browser
+        const baseTitle = document.title.replace(/^\(\d+\+?\) /, '');
+        document.title = count > 0 ? `(${label}) ${baseTitle}` : baseTitle;
+    }
+
+    // Minta izin browser notification
+    function requestPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }
+
+    // Tampilkan browser notification
+    function showBrowserNotif(title, body) {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        const n = new Notification(title, {
+            body,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: 'dispute-notif',
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+        setTimeout(() => n.close(), 6000);
+    }
+
+    let lastCount = null;
+
+    async function poll() {
+        try {
+            const res  = await fetch(CHECK_URL, {
+                headers: {
+                    'X-CSRF-TOKEN': CSRF,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+
+            const count = data.open_count ?? 0;
+            updateBadge(count);
+
+            if (data.has_new) {
+                playNotifSound();
+                showBrowserNotif(
+                    'Laporan Masalah Baru',
+                    'Ada laporan masalah baru yang menunggu tinjauan admin.'
+                );
+            }
+
+            lastCount = count;
+        } catch (_) {}
+    }
+
+    // Jalankan saat halaman load
+    document.addEventListener('DOMContentLoaded', () => {
+        requestPermission();
+        poll();
+        setInterval(poll, POLL_INTERVAL);
+    });
+})();
+</script>
 </body>
 </html>

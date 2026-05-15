@@ -107,6 +107,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/settings', [App\Http\Controllers\AdminController::class, 'settings'])->name('admin.settings');
         Route::post('/settings', [App\Http\Controllers\AdminController::class, 'updateSettings'])->name('admin.settings.update');
 
+        // Notifikasi polling (untuk badge + browser notification)
+        Route::get('/notifications/check', [App\Http\Controllers\AdminController::class, 'notificationsCheck'])->name('admin.notifications.check');
+
         // Ad Banners
         Route::get('/ad-banners', [App\Http\Controllers\AdminController::class, 'adBanners'])->name('admin.ad_banners');
         Route::post('/ad-banners', [App\Http\Controllers\AdminController::class, 'storeAdBanner'])->name('admin.ad_banners.store');
