@@ -45,10 +45,10 @@
         @endif
 
         {{-- ── MAIN LAYOUT ── --}}
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6" style="height: calc(100vh - 220px); min-height: 550px;">
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
             {{-- ══════════════ CHAT PANEL ══════════════ --}}
-            <div class="xl:col-span-8 flex flex-col overflow-hidden glass-card shadow-xl">
+            <div class="xl:col-span-8 flex flex-col glass-card shadow-xl" style="height: calc(100vh - 210px); min-height: 520px;">
 
                 {{-- Chat Header --}}
                 <div class="gradient-header-red text-white px-6 py-4 flex items-center justify-between shrink-0 rounded-t-2xl">
@@ -244,107 +244,97 @@
             </div>
 
             {{-- ══════════════ SIDEBAR ══════════════ --}}
-            <div class="xl:col-span-4 flex flex-col gap-4 overflow-y-auto">
+            <div class="xl:col-span-4 flex flex-col gap-4">
 
                 {{-- Info Laporan --}}
-                <div class="glass-card overflow-hidden shadow-lg">
-                    <div class="gradient-header-red px-5 py-4 text-white">
+                <div class="glass-card overflow-hidden shadow-md">
+                    <div class="gradient-header-red px-4 py-3 text-white flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <h3 class="font-black text-xs uppercase tracking-widest">Info Laporan</h3>
                     </div>
-                    <div class="p-5 space-y-3 text-xs">
-                        <div class="flex justify-between items-center py-2 border-b border-indigo-50">
-                            <span class="text-gray-500 font-semibold">ID Laporan</span>
-                            <span class="font-black text-lg">#D{{ $dispute->id }}</span>
+                    <div class="p-4 space-y-2 text-xs">
+                        <div class="flex justify-between items-center py-1.5 border-b border-indigo-50">
+                            <span class="text-slate-500 font-medium">ID</span>
+                            <span class="font-black text-base text-slate-800">#D{{ $dispute->id }}</span>
                         </div>
-                        <div class="flex justify-between items-center py-2 border-b border-indigo-50">
-                            <span class="text-gray-500 font-semibold">Transaksi</span>
-                            <span class="font-bold">#{{ $dispute->transaction_id }}</span>
+                        <div class="flex justify-between items-center py-1.5 border-b border-indigo-50">
+                            <span class="text-slate-500 font-medium">Transaksi</span>
+                            <a href="{{ route('admin.transactions.show', $dispute->transaction_id) }}" class="font-bold text-indigo-600 hover:underline">#{{ $dispute->transaction_id }}</a>
                         </div>
-                        <div class="flex justify-between items-center py-2 border-b border-indigo-50">
-                            <span class="text-gray-500 font-semibold">Nilai</span>
-                            <span class="font-black text-base">Rp {{ number_format($dispute->transaction->total_amount ?? 0, 0, ',', '.') }}</span>
+                        <div class="flex justify-between items-center py-1.5 border-b border-indigo-50">
+                            <span class="text-slate-500 font-medium">Nilai</span>
+                            <span class="font-black text-slate-800">Rp {{ number_format($dispute->transaction->total_amount ?? 0, 0, ',', '.') }}</span>
                         </div>
-                        <div class="flex justify-between items-center py-2 border-b border-indigo-50">
-                            <span class="text-gray-500 font-semibold">Status</span>
-                            <span class="px-2 py-1 bg-gradient-to-r from-red-500 to-rose-600 text-white font-black uppercase text-[9px] tracking-widest rounded-lg">{{ strtoupper(str_replace('_', ' ', $dispute->status)) }}</span>
+                        <div class="flex justify-between items-center py-1.5 border-b border-indigo-50">
+                            <span class="text-slate-500 font-medium">Status</span>
+                            <span class="px-2 py-0.5 bg-gradient-to-r from-red-500 to-rose-600 text-white font-black uppercase text-[9px] rounded-lg">{{ strtoupper(str_replace('_', ' ', $dispute->status)) }}</span>
                         </div>
                         @if($dispute->winner)
-                            <div class="flex justify-between items-center py-2">
-                                <span class="text-gray-500 font-semibold">Pemenang</span>
-                                <span class="font-black uppercase text-sm {{ $dispute->winner === 'buyer' ? 'text-blue-600' : 'text-emerald-600' }}">
-                                    {{ $dispute->winner === 'buyer' ? 'Pembeli' : 'Penjual' }}
-                                </span>
-                            </div>
+                        <div class="flex justify-between items-center py-1.5">
+                            <span class="text-slate-500 font-medium">Pemenang</span>
+                            <span class="font-black text-sm {{ $dispute->winner === 'buyer' ? 'text-blue-600' : 'text-emerald-600' }}">
+                                {{ $dispute->winner === 'buyer' ? 'Pembeli' : 'Penjual' }}
+                            </span>
+                        </div>
                         @endif
                     </div>
                 </div>
 
-                {{-- Pihak yang Terlibat --}}
-                <div class="glass-card overflow-hidden shadow-lg">
-                    <div class="gradient-header-red px-5 py-4 text-white">
+                {{-- Pihak Terlibat --}}
+                <div class="glass-card overflow-hidden shadow-md">
+                    <div class="gradient-header-blue px-4 py-3 text-white flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
                         <h3 class="font-black text-xs uppercase tracking-widest">Pihak Terlibat</h3>
                     </div>
-                    <div class="p-5 space-y-4">
-                        {{-- Pembeli --}}
-                        <div class="flex items-center gap-3 p-3 bg-blue-50/80 border border-blue-100 rounded-xl">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white font-black flex items-center justify-center text-base shrink-0 shadow-lg shadow-blue-500/20">
-                                {{ substr($dispute->buyer->name, 0, 1) }}
-                            </div>
-                            <div>
-                                <p class="text-[9px] font-black uppercase text-blue-500 tracking-widest mb-0.5">Pembeli (Pelapor)</p>
-                                <p class="font-black text-sm text-gray-800">{{ $dispute->buyer->name }}</p>
-                                <p class="text-[10px] text-gray-500">{{ $dispute->buyer->email }}</p>
+                    <div class="p-4 space-y-2">
+                        <div class="flex items-center gap-2.5 p-2.5 bg-blue-50/80 border border-blue-100 rounded-xl">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white font-black flex items-center justify-center text-sm shrink-0">{{ substr($dispute->buyer->name, 0, 1) }}</div>
+                            <div class="min-w-0">
+                                <p class="text-[9px] font-black uppercase text-blue-500 tracking-wide">Pembeli (Pelapor)</p>
+                                <p class="font-bold text-xs text-slate-800 truncate">{{ $dispute->buyer->name }}</p>
+                                <p class="text-[9px] text-slate-400 truncate">{{ $dispute->buyer->email }}</p>
                             </div>
                         </div>
-                        {{-- Penjual --}}
-                        <div class="flex items-center gap-3 p-3 bg-emerald-50/80 border border-emerald-100 rounded-xl">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 text-white font-black flex items-center justify-center text-base shrink-0 shadow-lg shadow-green-500/20">
-                                {{ substr($dispute->seller->name, 0, 1) }}
-                            </div>
-                            <div>
-                                <p class="text-[9px] font-black uppercase text-emerald-600 tracking-widest mb-0.5">Penjual (Terlapor)</p>
-                                <p class="font-black text-sm text-gray-800">{{ $dispute->seller->name }}</p>
-                                <p class="text-[10px] text-gray-500">{{ $dispute->seller->email }}</p>
+                        <div class="flex items-center gap-2.5 p-2.5 bg-emerald-50/80 border border-emerald-100 rounded-xl">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 text-white font-black flex items-center justify-center text-sm shrink-0">{{ substr($dispute->seller->name, 0, 1) }}</div>
+                            <div class="min-w-0">
+                                <p class="text-[9px] font-black uppercase text-emerald-600 tracking-wide">Penjual (Terlapor)</p>
+                                <p class="font-bold text-xs text-slate-800 truncate">{{ $dispute->seller->name }}</p>
+                                <p class="text-[9px] text-slate-400 truncate">{{ $dispute->seller->email }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {{-- Alasan --}}
-                <div class="glass-card overflow-hidden shadow-lg">
-                    <div class="gradient-header-red px-5 py-4 text-white">
+                <div class="glass-card overflow-hidden shadow-md">
+                    <div class="gradient-header-amber px-4 py-3 text-white flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                         <h3 class="font-black text-xs uppercase tracking-widest">Alasan</h3>
                     </div>
-                    <div class="p-5">
-                        <p class="text-sm font-bold text-gray-700 mb-2">{{ $dispute->reason }}</p>
+                    <div class="p-4">
+                        <p class="text-sm font-bold text-slate-700 mb-1.5">{{ $dispute->reason }}</p>
                         @if($dispute->description)
-                            <p class="text-xs text-gray-500 leading-relaxed bg-white/40 rounded-xl p-3 border border-indigo-50">
-                                {{ $dispute->description }}</p>
+                            <p class="text-xs text-slate-500 leading-relaxed bg-white/50 rounded-xl p-3 border border-indigo-50">{{ $dispute->description }}</p>
                         @endif
                     </div>
                 </div>
 
-                {{-- Panel Resolusi --}}
+                {{-- Tombol Panel Resolusi --}}
                 <a href="{{ route('admin.disputes.show', $dispute->id) }}"
-                    class="flex items-center justify-center gap-2 w-full py-4 btn-gradient text-white font-black text-xs uppercase tracking-widest transition-all rounded-xl shadow-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                            d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                    </svg>
+                    class="flex items-center justify-center gap-2 w-full py-3.5 btn-gradient text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     Panel Resolusi
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
-                    </svg>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
                 </a>
 
-                {{-- Auto Refresh Counter --}}
-                <div class="glass-card p-4 rounded-xl text-center">
-                    <p class="text-[10px] text-gray-400 font-mono uppercase tracking-widest mb-2">Auto-refresh dalam</p>
-                    <div id="refreshCountdown" class="text-4xl font-black tabular-nums text-slate-800">15</div>
-                    <p class="text-[9px] text-gray-500 mt-1">detik</p>
-                    <div class="mt-3 w-full bg-indigo-50 rounded-full h-1 overflow-hidden">
-                        <div id="refreshBar" class="h-full bg-gradient-to-r from-purple-500 to-rose-500 transition-all duration-1000 ease-linear"
-                            style="width: 100%"></div>
+                {{-- Auto Refresh --}}
+                <div class="glass-card p-3.5 rounded-xl text-center">
+                    <p class="text-[9px] text-slate-400 font-mono uppercase tracking-widest mb-1">Auto-refresh dalam</p>
+                    <div id="refreshCountdown" class="text-3xl font-black tabular-nums text-slate-700">15</div>
+                    <p class="text-[9px] text-slate-400 mt-0.5">detik</p>
+                    <div class="mt-2.5 w-full bg-indigo-50 rounded-full h-1 overflow-hidden">
+                        <div id="refreshBar" class="h-full bg-gradient-to-r from-purple-500 to-rose-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
                     </div>
                 </div>
 
