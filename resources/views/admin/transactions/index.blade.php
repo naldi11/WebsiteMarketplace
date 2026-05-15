@@ -11,21 +11,6 @@
             </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="mb-8 border border-indigo-100 rounded-xl bg-white/40 p-1 inline-flex flex-wrap gap-1">
-            <a href="{{ route('admin.transactions', ['tab' => 'all']) }}"
-                class="px-6 py-2 text-xs font-black uppercase transition-all rounded-lg {{ $tab === 'all' ? 'gradient-header-green text-white' : 'text-slate-600 hover:bg-indigo-50/50' }}">
-                Semua Pesanan ({{ $counts['all'] }})
-            </a>
-            <a href="{{ route('admin.transactions', ['tab' => 'payment']) }}"
-                class="px-6 py-2 text-xs font-black uppercase transition-all rounded-lg {{ $tab === 'payment' ? 'gradient-header-green text-white' : 'text-slate-600 hover:bg-indigo-50/50' }}">
-                Verifikasi Pembayaran ({{ $counts['payment'] }})
-            </a>
-            <a href="{{ route('admin.transactions', ['tab' => 'release']) }}"
-                class="px-6 py-2 text-xs font-black uppercase transition-all rounded-lg {{ $tab === 'release' ? 'gradient-header-green text-white' : 'text-slate-600 hover:bg-indigo-50/50' }}">
-                Lepas Dana ({{ $counts['release'] }})
-            </a>
-        </div>
 
         <!-- Transaction Table -->
         <div class="glass-card overflow-hidden mb-12">

@@ -219,25 +219,12 @@ $user = User::findOrFail($id);
 
     public function transactions(Request $request)
     {
-$tab = $request->query('tab', 'all');
+        $transactions = Transaction::with(['buyer', 'seller', 'items.product'])
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
 
-        $query = Transaction::with(['buyer', 'seller', 'items.product'])->latest();
-
-        if ($tab === 'payment') {
-            $query->where('status', 'pending');
-        } elseif ($tab === 'release') {
-            $query->where('status', 'received');
-        }
-
-        $transactions = $query->paginate(15)->withQueryString();
-
-        $counts = [
-            'all' => Transaction::count(),
-            'payment' => Transaction::where('status', 'pending')->count(),
-            'release' => Transaction::where('status', 'received')->count(),
-        ];
-
-        return view('admin.transactions.index', compact('transactions', 'counts', 'tab'));
+        return view('admin.transactions.index', compact('transactions'));
     }
 
     public function showTransaction(Transaction $transaction)
