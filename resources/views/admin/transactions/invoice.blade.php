@@ -85,7 +85,7 @@
             <div class="bg-blue-50/50 p-5 rounded-xl border border-blue-100/50">
                 <div class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">INFORMASI PENJUAL:</div>
                 <h3 class="text-lg font-bold text-slate-800">
-                    {{ $transaction->seller->shop_name ?? ($transaction->seller->name ?? 'TechnoMarket Seller') }}
+                    {{ $transaction->seller->shop_name ?? ($transaction->seller->name ?? 'Market Barang Bekas Seller') }}
                 </h3>
                 <p class="text-sm text-slate-600 mt-2 leading-relaxed">
                     <strong>PIC:</strong> {{ $transaction->seller->name ?? '-' }}<br>
@@ -190,7 +190,7 @@
 
         <!-- Footer Note -->
         <div class="mt-16 pt-8 border-t border-dashed border-slate-200 text-center text-xs text-slate-400">
-            <p>Ini adalah dokumen sah secara elektronik yang diterbitkan oleh sistem TechnoMarket.</p>
+            <p>Ini adalah dokumen sah secara elektronik yang diterbitkan oleh sistem Market Barang Bekas.</p>
             <p>Terima kasih telah berbelanja menggunakan platform kami!</p>
         </div>
     </div>

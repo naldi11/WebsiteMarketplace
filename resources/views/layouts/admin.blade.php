@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Admin Panel - @yield('title', 'Techno Market')</title>
+    <title>Admin Panel - @yield('title', 'Market Barang Bekas')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -157,7 +157,7 @@
                     </div>
                     <div>
                         <div class="text-white font-black text-sm uppercase tracking-tight">Admin Panel</div>
-                        <div class="text-white/50 text-[10px] font-mono uppercase tracking-widest">Techno Market</div>
+                        <div class="text-white/50 text-[10px] font-mono uppercase tracking-widest">Market Barang Bekas</div>
                     </div>
                 </div>
             </div>
@@ -297,7 +297,7 @@
                 </div>
 
                 <footer class="mt-16 pt-6 border-t border-indigo-100/60 flex flex-col md:flex-row justify-between items-center gap-3 text-[11px] text-slate-400 font-medium">
-                    <div>Techno Market Admin &copy; {{ date('Y') }}</div>
+                    <div>Market Barang Bekas Admin &copy; {{ date('Y') }}</div>
                     <div class="flex gap-4">
                         <span>Status: <span class="text-emerald-500 font-semibold">Aktif</span></span>
                         <span>{{ now()->format('d M Y, H:i') }}</span>
