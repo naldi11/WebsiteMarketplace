@@ -355,5 +355,82 @@
             </div>
         </div>
     </div>
+
+    {{-- ── Chat Terintegrasi ── --}}
+    <div class="glass-card overflow-hidden mt-8">
+        <div class="gradient-header-red px-6 py-4 text-white flex items-center gap-3 rounded-t-2xl">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            <span class="font-black uppercase tracking-tight">Percakapan Laporan #D{{ $dispute->id }}</span>
+        </div>
+
+        <div class="p-6 space-y-3 max-h-96 overflow-y-auto bg-gradient-to-b from-slate-50/60 to-indigo-50/40" id="chatBox">
+            @forelse($messages as $msg)
+                @php
+                    $isAdmin  = !in_array($msg->sender_id, [$dispute->buyer_id, $dispute->seller_id]);
+                    $isBuyer  = ($msg->sender_id === $dispute->buyer_id);
+                    $isSystem = str_contains($msg->message, '⚖️') || str_contains($msg->message, '✅')
+                             || str_contains($msg->message, '🔍') || str_contains($msg->message, '📦')
+                             || str_contains($msg->message, '🎉');
+                @endphp
+                @if($isSystem)
+                    <div class="flex justify-center">
+                        <span class="text-[10px] bg-white/60 border border-indigo-100 rounded-full px-3 py-1 text-slate-500 font-mono">
+                            {{ $msg->message }}
+                        </span>
+                    </div>
+                @elseif($isAdmin)
+                    <div class="flex justify-center">
+                        <div class="max-w-sm bg-purple-600/90 text-white px-4 py-2 rounded-2xl text-xs font-medium shadow">
+                            {{ $msg->message }}
+                            <div class="text-purple-200 text-[9px] mt-1 text-right">{{ $msg->created_at->format('H:i') }} · Admin</div>
+                        </div>
+                    </div>
+                @elseif($isBuyer)
+                    <div class="flex justify-start gap-2">
+                        <div class="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px] font-black flex-shrink-0">
+                            {{ substr($dispute->transaction->buyer->name ?? 'B', 0, 1) }}
+                        </div>
+                        <div class="max-w-xs">
+                            <div class="text-[9px] text-slate-400 mb-1">{{ $dispute->transaction->buyer->name ?? 'Pembeli' }}</div>
+                            <div class="bg-blue-50/80 border border-blue-100 px-4 py-2 rounded-2xl text-xs text-slate-700 shadow-sm">
+                                {{ $msg->message }}
+                                <div class="text-slate-400 text-[9px] mt-1">{{ $msg->created_at->format('H:i') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="flex justify-end gap-2">
+                        <div class="max-w-xs text-right">
+                            <div class="text-[9px] text-slate-400 mb-1">{{ $dispute->transaction->seller->name ?? 'Penjual' }}</div>
+                            <div class="bg-emerald-500/90 text-white px-4 py-2 rounded-2xl text-xs shadow-sm">
+                                {{ $msg->message }}
+                                <div class="text-emerald-100 text-[9px] mt-1">{{ $msg->created_at->format('H:i') }}</div>
+                            </div>
+                        </div>
+                        <div class="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px] font-black flex-shrink-0">
+                            {{ substr($dispute->transaction->seller->name ?? 'S', 0, 1) }}
+                        </div>
+                    </div>
+                @endif
+            @empty
+                <p class="text-center text-slate-400 text-xs py-8">Percakapan belum dimulai.</p>
+            @endforelse
+        </div>
+
+        <div class="border-t border-indigo-100 p-4 rounded-b-2xl">
+            <form action="{{ route('admin.disputes.chat.send', $dispute->id) }}" method="POST" class="flex gap-3">
+                @csrf
+                <input type="text" name="message" placeholder="Ketik pesan sebagai admin..."
+                    class="flex-1 px-4 py-2 border border-indigo-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white/60">
+                <button type="submit" class="btn-gradient text-white px-5 py-2 rounded-xl text-sm font-semibold">
+                    Kirim
+                </button>
+            </form>
+        </div>
+    </div>
+
 </div>
 @endsection

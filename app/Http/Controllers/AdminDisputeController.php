@@ -59,13 +59,40 @@ class AdminDisputeController extends Controller
 
         $dispute = Dispute::with([
             'transaction.items.product',
+            'transaction.buyer',
+            'transaction.seller',
             'buyer',
             'seller',
             'resolvedBy',
             'logs' => fn($q) => $q->orderBy('created_at', 'asc'),
         ])->findOrFail($id);
 
-        return view('admin.disputes.show', compact('dispute'));
+        // Get conversation messages — show admin→buyer only to avoid duplicate display
+        $messages = \App\Models\Message::where(function ($q) use ($dispute) {
+                // buyer↔seller messages (both directions)
+                $q->where(function ($inner) use ($dispute) {
+                    $inner->where('sender_id', $dispute->buyer_id)
+                          ->where('receiver_id', $dispute->seller_id);
+                })->orWhere(function ($inner) use ($dispute) {
+                    $inner->where('sender_id', $dispute->seller_id)
+                          ->where('receiver_id', $dispute->buyer_id);
+                })
+                // admin→buyer only (to avoid showing duplicate admin→seller messages)
+                ->orWhere(function ($inner) use ($dispute) {
+                    $inner->whereNotIn('sender_id', [$dispute->buyer_id, $dispute->seller_id])
+                          ->where('receiver_id', $dispute->buyer_id);
+                })
+                // buyer or seller → admin
+                ->orWhere(function ($inner) use ($dispute) {
+                    $inner->whereIn('sender_id', [$dispute->buyer_id, $dispute->seller_id])
+                          ->whereNotIn('receiver_id', [$dispute->buyer_id, $dispute->seller_id]);
+                });
+            })
+            ->with(['sender'])
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return view('admin.disputes.show', compact('dispute', 'messages'));
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -283,34 +310,35 @@ class AdminDisputeController extends Controller
     // ─────────────────────────────────────────────────────────────
     public function sendAdminChat(Request $request, $id)
     {
-        $this->checkAdmin();
         $admin = auth()->user();
-
         $request->validate(['message' => 'required|string|max:2000']);
-
         $dispute = Dispute::with('transaction')->findOrFail($id);
 
-        // Admin kirim pesan ke buyer (receiver=buyer) dengan prefix [ADMIN]
+        $text = "👮 [ADMIN] " . $request->message;
+
+        // Send to buyer
         Message::create([
             'sender_id'   => $admin->id,
             'receiver_id' => $dispute->buyer_id,
-            'message'     => "👮 [ADMIN] " . $request->message,
+            'message'     => $text,
             'is_read'     => 0,
         ]);
 
-        // Admin juga kirim ke seller agar semua pihak melihat
-        Message::create([
-            'sender_id'   => $admin->id,
-            'receiver_id' => $dispute->seller_id,
-            'message'     => "👮 [ADMIN] " . $request->message,
-            'is_read'     => 0,
-        ]);
+        // Send to seller too so mobile seller chat also receives it
+        if ($dispute->seller_id !== $dispute->buyer_id) {
+            Message::create([
+                'sender_id'   => $admin->id,
+                'receiver_id' => $dispute->seller_id,
+                'message'     => $text,
+                'is_read'     => 0,
+            ]);
+        }
 
         $dispute->addLog('admin', $admin->id, 'admin_sent_chat',
-            'Admin mengirim pesan ke chat: ' . substr($request->message, 0, 100)
+            'Admin mengirim pesan: ' . substr($request->message, 0, 100)
         );
 
-        return back()->with('success', 'Pesan berhasil dikirim ke buyer dan seller.');
+        return back()->with('success', 'Pesan berhasil dikirim.');
     }
 
     // ─────────────────────────────────────────────────────────────
