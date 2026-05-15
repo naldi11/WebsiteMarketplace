@@ -15,7 +15,7 @@
             <div class="flex-1">
                 <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-black tracking-tighter uppercase italic">
-                        God View Chat — Sengketa #D{{ $dispute->id }}
+                        Percakapan Laporan Masalah #D{{ $dispute->id }}
                     </h1>
                     <span
                         class="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
@@ -63,7 +63,7 @@
                             <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white/50"></span>
                         </div>
                         <div>
-                            <p class="font-black text-sm uppercase tracking-wide">Percakapan Sengketa</p>
+                            <p class="font-black text-sm uppercase tracking-wide">Percakapan</p>
                             <p class="text-white/60 text-[10px] font-mono">{{ $messages->count() }} pesan tercatat</p>
                         </div>
                     </div>
@@ -203,7 +203,7 @@
                                     </svg>
                                 </div>
                                 <p class="text-gray-400 text-sm font-black uppercase tracking-widest">Belum Ada Pesan</p>
-                                <p class="text-gray-300 text-xs mt-1">Percakapan sengketa belum dimulai</p>
+                                <p class="text-gray-300 text-xs mt-1">Percakapan belum dimulai</p>
                             </div>
                         @endforelse
                     </div>
@@ -246,14 +246,14 @@
             {{-- ══════════════ SIDEBAR ══════════════ --}}
             <div class="xl:col-span-4 flex flex-col gap-4 overflow-y-auto">
 
-                {{-- Info Sengketa --}}
+                {{-- Info Laporan --}}
                 <div class="glass-card overflow-hidden shadow-lg">
                     <div class="gradient-header-red px-5 py-4 text-white">
-                        <h3 class="font-black text-xs uppercase tracking-widest">Info Sengketa</h3>
+                        <h3 class="font-black text-xs uppercase tracking-widest">Info Laporan</h3>
                     </div>
                     <div class="p-5 space-y-3 text-xs">
                         <div class="flex justify-between items-center py-2 border-b border-indigo-50">
-                            <span class="text-gray-500 font-semibold">ID Sengketa</span>
+                            <span class="text-gray-500 font-semibold">ID Laporan</span>
                             <span class="font-black text-lg">#D{{ $dispute->id }}</span>
                         </div>
                         <div class="flex justify-between items-center py-2 border-b border-indigo-50">
@@ -279,10 +279,10 @@
                     </div>
                 </div>
 
-                {{-- Pihak yang Bersengketa --}}
+                {{-- Pihak yang Terlibat --}}
                 <div class="glass-card overflow-hidden shadow-lg">
                     <div class="gradient-header-red px-5 py-4 text-white">
-                        <h3 class="font-black text-xs uppercase tracking-widest">Pihak Bersengketa</h3>
+                        <h3 class="font-black text-xs uppercase tracking-widest">Pihak Terlibat</h3>
                     </div>
                     <div class="p-5 space-y-4">
                         {{-- Pembeli --}}
@@ -310,10 +310,10 @@
                     </div>
                 </div>
 
-                {{-- Alasan Sengketa --}}
+                {{-- Alasan --}}
                 <div class="glass-card overflow-hidden shadow-lg">
                     <div class="gradient-header-red px-5 py-4 text-white">
-                        <h3 class="font-black text-xs uppercase tracking-widest">Alasan Sengketa</h3>
+                        <h3 class="font-black text-xs uppercase tracking-widest">Alasan</h3>
                     </div>
                     <div class="p-5">
                         <p class="text-sm font-bold text-gray-700 mb-2">{{ $dispute->reason }}</p>

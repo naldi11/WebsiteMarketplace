@@ -5,8 +5,8 @@
         {{-- Header --}}
         <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-10">
             <div>
-                <h1 class="text-4xl font-black tracking-tighter uppercase italic">Pusat Sengketa</h1>
-                <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest">Manajemen Sengketa & Resolusi
+                <h1 class="text-4xl font-black tracking-tighter uppercase italic">Laporan Masalah</h1>
+                <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest">Manajemen Laporan & Resolusi
                     Kasus</p>
             </div>
             {{-- Status Tabs --}}

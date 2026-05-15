@@ -15,7 +15,7 @@
         {{-- God View Button --}}
         <a href="{{ route('admin.disputes.chat', $dispute->id) }}"
            class="flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs uppercase transition-all rounded-xl shadow-lg">
-            👁️ Pantau Chat Sengketa
+            💬 Lihat Chat Laporan
         </a>
     </div>
 
@@ -107,11 +107,11 @@
                 @if($dispute->status === 'seller_won')
                 <div class="mb-5 bg-red-50 border border-red-300 p-4 rounded-xl text-xs">
                     <p class="font-black text-red-700">Pembeli TIDAK DAPAT memberikan rating pada transaksi ini.</p>
-                    <p class="text-red-500 mt-1">Akses rating telah diblokir otomatis karena penjual memenangkan sengketa.</p>
+                    <p class="text-red-500 mt-1">Akses rating telah diblokir otomatis karena penjual memenangkan laporan masalah ini.</p>
                 </div>
                 @endif
 
-                {{-- Pihak yang bersengketa --}}
+                {{-- Pihak yang terlibat --}}
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl">
                         <p class="text-[10px] font-black text-blue-600 uppercase mb-1">Pembeli (Pelapor)</p>
@@ -214,7 +214,7 @@
             {{-- God View Button --}}
             <a href="{{ route('admin.disputes.chat', $dispute->id) }}"
                class="flex items-center justify-center gap-2 w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-black text-sm uppercase transition-all rounded-xl shadow-lg shadow-purple-500/20">
-                Pantau Chat Sengketa
+                Lihat Chat Laporan
             </a>
 
             {{-- PANEL AKSI --}}
