@@ -24,7 +24,6 @@ class User extends Authenticatable
         'phone',
         'role',
         'avatar',
-        'shop_name',
         'address',
         'password',
         'is_suspended',
@@ -97,6 +96,16 @@ class User extends Authenticatable
     public function defaultAddress()
     {
         return $this->hasOne(UserAddress::class)->where('is_default', true);
+    }
+
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
+    public function getOrCreateWallet()
+    {
+        return Wallet::getOrCreate($this->id);
     }
 
     public function sellerBalance()

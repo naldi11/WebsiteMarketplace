@@ -15,6 +15,10 @@ class ReviewController extends Controller
         if ($transaction->status !== 'completed')
             abort(403);
 
+        // Blokir rating jika sengketa dimenangkan penjual
+        if ((int) $transaction->buyer_can_rate === 0) {
+            return back()->with('error', 'Anda tidak dapat memberikan rating pada transaksi ini karena sengketa dimenangkan oleh penjual.');
+        }
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'required|string',

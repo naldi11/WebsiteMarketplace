@@ -17,7 +17,6 @@ return new class extends Migration {
             $table->string('phone')->unique();
             $table->enum('role', ['user', 'admin'])->default('user');
             $table->string('avatar')->nullable();
-            $table->string('shop_name')->nullable();
             $table->text('address')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

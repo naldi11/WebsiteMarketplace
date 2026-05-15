@@ -40,6 +40,11 @@ class Transaction extends Model
         'user_hidden',
         'buyer_seen',
         'seller_seen',
+        'meypay_va',
+        'meypay_qr_content',
+        'meypay_va_token',
+        'transaction_number',
+        'paid_at',
     ];
 
     protected $casts = [
@@ -87,6 +92,11 @@ class Transaction extends Model
     public function trackingLogs()
     {
         return $this->hasMany(OrderTrackingLog::class)->orderBy('created_at', 'asc');
+    }
+
+    public function dispute()
+    {
+        return $this->hasOne(\App\Models\Dispute::class);
     }
 
     // Helper to get primary product (fallback for views expecting single product)

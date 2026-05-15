@@ -116,6 +116,7 @@ Route::middleware('auth')->group(function () {
 
         // Balances
         Route::get('/balances', [App\Http\Controllers\AdminController::class, 'balances'])->name('admin.balances');
+        Route::get('/wallet-logs', [App\Http\Controllers\AdminController::class, 'walletLogs'])->name('admin.wallet_logs');
         // Settings
         Route::get('/settings', [App\Http\Controllers\AdminController::class, 'settings'])->name('admin.settings');
         Route::post('/settings', [App\Http\Controllers\AdminController::class, 'updateSettings'])->name('admin.settings.update');
@@ -125,6 +126,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/ad-banners', [App\Http\Controllers\AdminController::class, 'storeAdBanner'])->name('admin.ad_banners.store');
         Route::put('/ad-banners/{adBanner}', [App\Http\Controllers\AdminController::class, 'updateAdBanner'])->name('admin.ad_banners.update');
         Route::delete('/ad-banners/{adBanner}', [App\Http\Controllers\AdminController::class, 'destroyAdBanner'])->name('admin.ad_banners.destroy');
+
+        // ── Dispute Management ────────────────────────────────────
+        Route::get('/disputes', [App\Http\Controllers\AdminDisputeController::class, 'index'])->name('admin.disputes.index');
+        Route::get('/disputes/{id}', [App\Http\Controllers\AdminDisputeController::class, 'show'])->name('admin.disputes.show');
+        Route::post('/disputes/{id}/resolve', [App\Http\Controllers\AdminDisputeController::class, 'resolve'])->name('admin.disputes.resolve');
+        Route::post('/disputes/{id}/force-refund', [App\Http\Controllers\AdminDisputeController::class, 'forceRefund'])->name('admin.disputes.forceRefund');
+        Route::post('/disputes/{id}/reviewing', [App\Http\Controllers\AdminDisputeController::class, 'markReviewing'])->name('admin.disputes.reviewing');
+        Route::post('/disputes/{id}/confirm-received', [App\Http\Controllers\AdminDisputeController::class, 'adminConfirmReceived'])->name('admin.disputes.confirmReceived');
+        Route::get('/disputes/{id}/chat', [App\Http\Controllers\AdminDisputeController::class, 'viewChat'])->name('admin.disputes.chat');
+        Route::post('/disputes/{id}/chat/send', [App\Http\Controllers\AdminDisputeController::class, 'sendAdminChat'])->name('admin.disputes.chat.send');
     });
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/ship', [TransactionController::class, 'shipOrder'])->name('transactions.ship');

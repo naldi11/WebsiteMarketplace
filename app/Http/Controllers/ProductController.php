@@ -140,6 +140,10 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'stock' => 'required|integer',
             'location' => 'required',
+            'condition' => 'required|in:new,used,like_new,good,fair',
+            'weight' => 'required|integer|min:1',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
             'additional_images.*' => 'nullable|image|max:2048',
             'discount_price' => 'nullable|numeric|min:0|lte:price',
         ]);
@@ -173,9 +177,13 @@ class ProductController extends Controller
             'location' => $request->location,
             'description' => $request->description,
             'category_id' => $request->category_id,
+            'condition' => $request->condition,
+            'weight' => $request->weight,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
         ]);
 
-        return redirect()->route('products.my')->with('success', 'Barang berhasil diupdate!');
+        return redirect()->route('products.my')->with('success', 'Barang berhasil diperbarui!');
     }
 
     public function destroy(Product $product)

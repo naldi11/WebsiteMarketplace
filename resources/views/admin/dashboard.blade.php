@@ -2,229 +2,227 @@
 
 @section('content')
     <div class="pt-0 pb-2">
-        <!-- Header & Time Filter -->
-        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-8">
+        <!-- Header & Time Filter Minimalist -->
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-12">
             <div>
-                <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-indigo-800 to-gray-600 tracking-tight">CEO Command Center</h1>
-                <p class="text-gray-500 mt-1 font-medium">Analitik makro platform dan ringkasan eksekutif secara riil-time.</p>
+                <h1 class="text-4xl font-black tracking-tighter uppercase italic">Pusat Kendali</h1>
+                <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest">Analitik Platform Real-time & Status Sistem</p>
             </div>
-            <div class="flex flex-wrap bg-white rounded-xl shadow-sm border border-gray-100 p-1.5 gap-1">
-                @php $periods = ['today' => 'Hari Ini', 'week' => 'Minggu Ini', 'month' => 'Bulan Ini', 'year' => 'Tahun Ini', 'all' => 'Semua Waktu']; @endphp
+            <div class="flex flex-wrap border-[3px] border-black p-1 gap-1 bg-white neo-brutalism">
+                @php $periods = ['today' => 'Hari Ini', 'week' => 'Mingguan', 'month' => 'Bulanan', 'year' => 'Tahunan', 'all' => 'Semua Waktu']; @endphp
                 @foreach($periods as $key => $label)
                     <a href="{{ route('admin.dashboard', ['period' => $key]) }}"
-                       class="px-4 py-2 text-sm font-bold rounded-lg transition-all duration-300 transform {{ $period === $key ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-200 scale-105' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
+                       class="px-5 py-2 text-xs font-black uppercase transition-all {{ $period === $key ? 'bg-black text-white' : 'text-black hover:bg-gray-100' }}">
                         {{ $label }}
                     </a>
                 @endforeach
             </div>
         </div>
 
-        <!-- Executive Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        <!-- Executive Summary Cards - Neo Brutalism -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-12">
             <!-- GMV -->
-            <div class="relative overflow-hidden bg-gradient-to-br from-indigo-700 to-blue-900 p-6 rounded-2xl shadow-xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 text-white group">
-                <div class="absolute -right-6 -top-6 text-white/10 group-hover:scale-110 transition-transform duration-500">
-                    <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="bg-white border-[3px] border-black p-8 neo-brutalism relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
+                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <div class="relative z-10">
-                    <div class="flex items-center gap-2 mb-1">
-                        <div class="text-indigo-100 text-xs font-bold uppercase tracking-wider">Gross Merchandise Value (GMV)</div>
+                    <div class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-black"></span> GMV (Kotor)
                     </div>
-                    <div class="text-3xl font-black mb-1">Rp {{ number_format($stats['total_sales'], 0, ',', '.') }}</div>
-                    <div class="text-xs text-indigo-100 mt-3 font-medium bg-white/20 px-3 py-1.5 rounded-lg w-max backdrop-blur-md">
-                        Total perputaran uang kotor platform
-                    </div>
+                    <div class="text-3xl font-black mb-2 tracking-tighter">Rp {{ number_format($stats['total_sales'], 0, ',', '.') }}</div>
+                    <div class="text-[9px] font-mono text-gray-400 uppercase mt-4">Nilai Kotor Barang Platform</div>
                 </div>
             </div>
 
             <!-- Net Revenue -->
-            <div class="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-800 p-6 rounded-2xl shadow-xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 text-white group">
-                <div class="absolute -right-6 -top-6 text-white/10 group-hover:scale-110 transition-transform duration-500">
-                    <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            <div class="bg-white border-[3px] border-black p-8 neo-brutalism relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
+                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                 </div>
                 <div class="relative z-10">
-                    <div class="text-emerald-100 text-xs font-bold mb-1 uppercase tracking-wider">Net Platform Revenue</div>
-                    <div class="text-3xl font-black mb-1">Rp {{ number_format($stats['platform_profit'], 0, ',', '.') }}</div>
-                    <div class="text-xs text-emerald-100 mt-3 font-medium bg-white/20 px-3 py-1.5 rounded-lg w-max backdrop-blur-md">
-                       Laba murni (Service + Admin Fee)
+                    <div class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 text-black">
+                        <span class="w-2 h-2 bg-black"></span> Pendapatan Bersih
                     </div>
+                    <div class="text-3xl font-black mb-2 tracking-tighter">Rp {{ number_format($stats['platform_profit'], 0, ',', '.') }}</div>
+                    <div class="text-[9px] font-mono text-gray-400 uppercase mt-4">Pendapatan Bersih (Biaya Layanan)</div>
                 </div>
             </div>
 
-            <!-- Escrow Funds -->
-            <div class="relative overflow-hidden bg-gradient-to-br from-slate-700 to-gray-900 p-6 rounded-2xl shadow-xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 text-white group">
-                <div class="absolute -right-6 -top-6 text-white/10 group-hover:scale-110 transition-transform duration-500">
-                    <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+            <!-- MeyPay Total Balance -->
+            <div class="bg-white border-[3px] border-black p-8 neo-brutalism relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
+                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                 </div>
                 <div class="relative z-10">
-                    <div class="text-gray-300 text-xs font-bold mb-1 uppercase tracking-wider">Retained Seller Funds</div>
-                    <div class="text-3xl font-black mb-1">Rp {{ number_format($stats['escrow_funds'], 0, ',', '.') }}</div>
-                    <div class="text-xs text-gray-300 mt-3 font-medium bg-white/20 px-3 py-1.5 rounded-lg w-max backdrop-blur-md">
-                        Total saldo penjual tertahan di platform
+                    <div class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 text-black">
+                        <span class="w-2 h-2 bg-black"></span> MeyPay Tersedia
                     </div>
+                    <div class="text-3xl font-black mb-2 tracking-tighter">Rp {{ number_format($stats['total_wallet_balance'], 0, ',', '.') }}</div>
+                    <div class="text-[9px] font-mono text-gray-400 uppercase mt-4">Beredar di Dompet Pengguna</div>
                 </div>
             </div>
 
-            <!-- Total User Base -->
-            <a href="{{ route('admin.users') }}" class="relative overflow-hidden bg-gradient-to-br from-violet-600 to-purple-800 p-6 rounded-2xl shadow-xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 text-white cursor-pointer group hover:ring-4 hover:ring-purple-400/50 block">
-                <div class="absolute -right-6 -top-6 text-white/10 group-hover:scale-110 transition-transform duration-500">
-                    <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <!-- MeyPay Pending/Escrow -->
+            <div class="bg-white border-[3px] border-black p-8 neo-brutalism relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
+                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
-                <div class="relative z-10 h-full flex flex-col justify-between">
-                    <div>
-                        <div class="text-purple-200 text-xs font-bold mb-1 uppercase tracking-wider">Active User Base</div>
-                        <div class="text-3xl font-black">{{ $stats['total_users'] }}</div>
+                <div class="relative z-10">
+                    <div class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 text-black">
+                        <span class="w-2 h-2 bg-black"></span> MeyPay Escrow
                     </div>
-                    <div class="mt-4 flex items-center text-xs font-bold text-white bg-white/20 py-2 px-4 rounded-lg w-max backdrop-blur-md group-hover:bg-white/30 transition">
-                        Kelola Manajemen User <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    </div>
+                    <div class="text-3xl font-black mb-2 tracking-tighter">Rp {{ number_format($stats['total_wallet_pending'], 0, ',', '.') }}</div>
+                    <div class="text-[9px] font-mono text-gray-400 uppercase mt-4">Dana Ditahan untuk Pesanan Aktif</div>
                 </div>
-            </a>
+            </div>
+
+            <!-- Users -->
+            <div class="bg-black border-[3px] border-black p-8 neo-brutalism relative overflow-hidden group text-white">
+                <div class="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-all">
+                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </div>
+                <div class="relative z-10">
+                    <div class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-white"></span> Pengguna Aktif
+                    </div>
+                    <div class="text-3xl font-black mb-2 tracking-tighter">{{ number_format($stats['total_users'], 0, ',', '.') }}</div>
+                    <div class="text-[9px] font-mono text-gray-400 uppercase mt-4">Total Pengguna Platform</div>
+                </div>
+            </div>
         </div>
 
         <!-- The Analytic Arena -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Left: Line Chart (Financial Trends) -->
-            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                <div class="px-6 py-5 border-b border-gray-100">
-                    <h2 class="font-black text-gray-900 text-lg">Tren Keuangan <span class="text-indigo-600 font-bold ml-1 text-sm bg-indigo-50 px-2 py-1 rounded-md">{{ $periods[$period] }}</span></h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+            <!-- Left: Line Chart -->
+            <div class="lg:col-span-2 bg-white border-[3px] border-black neo-brutalism overflow-hidden">
+                <div class="px-8 py-6 border-b-[3px] border-black bg-gray-50 flex justify-between items-center">
+                    <h2 class="font-black text-xl uppercase tracking-tighter italic">Tren Keuangan</h2>
+                    <span class="px-3 py-1 bg-black text-white text-[10px] font-black uppercase">{{ $periods[$period] }}</span>
                 </div>
-                <div class="p-6 flex-1 w-full h-[350px]">
+                <div class="p-8 h-[400px]">
                     <canvas id="performanceChart"></canvas>
                 </div>
             </div>
 
-            <!-- Right: Doughnut Chart (Order Status) -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                <div class="px-6 py-5 border-b border-gray-100">
-                    <h2 class="font-black text-gray-900 text-lg">Komposisi Order</h2>
+            <!-- Right: Doughnut Chart -->
+            <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden">
+                <div class="px-8 py-6 border-b-[3px] border-black bg-gray-50">
+                    <h2 class="font-black text-xl uppercase tracking-tighter italic">Distribusi Pesanan</h2>
                 </div>
-                <div class="p-6 flex-1 w-full flex flex-col items-center justify-center relative min-h-[350px]">
+                <div class="p-8 h-[400px] flex flex-col items-center justify-center">
                     @if(array_sum($orderStatus) > 0)
-                        <canvas id="orderStatusChart" class="max-w-[280px] max-h-[280px]"></canvas>
+                        <canvas id="orderStatusChart"></canvas>
                     @else
-                        <div class="flex flex-col items-center justify-center text-gray-400">
-                            <svg class="w-16 h-16 mb-4 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                            <span class="font-medium text-sm">Belum ada transaksi</span>
+                        <div class="text-center">
+                            <div class="w-16 h-16 border-[3px] border-black mx-auto mb-4 flex items-center justify-center">
+                                <span class="font-black">?</span>
+                            </div>
+                            <p class="text-[10px] font-black uppercase opacity-40">Tidak Ada Data</p>
                         </div>
                     @endif
                 </div>
             </div>
         </div>
 
-        <!-- Leaderboards & Tables -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Rankings & Logs -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             <!-- Top Sellers -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                    <h2 class="font-black text-gray-900 text-lg flex items-center gap-2">
-                        <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg>
-                        Top Sellers
+            <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden">
+                <div class="px-8 py-6 border-b-[3px] border-black bg-black text-white">
+                    <h2 class="font-black text-xl uppercase tracking-tighter flex items-center gap-3 italic">
+                        <span class="w-3 h-3 bg-white"></span> Penjual Terbaik
                     </h2>
                 </div>
-                <div class="p-0">
+                <div class="divide-y-2 divide-black">
                     @forelse($topSellers as $seller)
-                        <div class="flex items-center gap-4 p-4 border-b border-gray-50 hover:bg-gray-50/80 transition">
-                            <div class="w-10 h-10 flex items-center justify-center bg-gradient-to-br {{ $loop->iteration == 1 ? 'from-yellow-400 to-yellow-600 text-white shadow-lg shadow-yellow-200' : ($loop->iteration == 2 ? 'from-gray-300 to-gray-500 text-white' : ($loop->iteration == 3 ? 'from-amber-600 to-amber-800 text-white' : 'bg-gray-100 text-gray-600')) }}  rounded-full font-black text-sm">
-                                #{{ $loop->iteration }}
+                        <div class="flex items-center gap-6 p-6 hover:bg-gray-50 transition-all group">
+                            <div class="w-12 h-12 border-[3px] border-black flex items-center justify-center font-black group-hover:bg-black group-hover:text-white transition-all italic text-xl">
+                                {{ $loop->iteration }}
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <h4 class="text-sm font-bold text-gray-900 truncate">{{ $seller->shop_name ?? $seller->name }}</h4>
-                                <p class="text-xs font-medium text-gray-500">{{ $seller->completed_sales }} Transaksi Berhasil</p>
+                            <div class="flex-1">
+                                <h4 class="font-black uppercase text-sm tracking-tight">{{ $seller->shop_name ?? $seller->name }}</h4>
+                                <p class="text-[10px] font-mono text-gray-500 uppercase">{{ $seller->completed_sales }} Penjualan Berhasil</p>
                             </div>
                             <div class="text-right">
-                                <div class="text-sm font-black text-emerald-600 truncate">Rp {{ number_format($seller->total_earnings, 0, ',', '.') }}</div>
-                                <div class="text-[10px] uppercase font-bold text-gray-400">Total Pencapaian</div>
+                                <div class="font-black text-lg">Rp {{ number_format($seller->total_earnings, 0, ',', '.') }}</div>
                             </div>
                         </div>
                     @empty
-                        <div class="p-8 text-center text-gray-400 text-sm">Tidak ada data Top Seller.</div>
+                        <div class="p-12 text-center text-gray-400 font-black uppercase text-xs">Belum Ada Data</div>
                     @endforelse
                 </div>
             </div>
 
-            <!-- Top Categories -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                    <h2 class="font-black text-gray-900 text-lg flex items-center gap-2">
-                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                        Market Movers (Top Kategori)
+            <!-- Top Categories (Market Movers) -->
+            <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden">
+                <div class="px-8 py-6 border-b-[3px] border-black bg-black text-white">
+                    <h2 class="font-black text-xl uppercase tracking-tighter flex items-center gap-3 italic">
+                        <span class="w-3 h-3 bg-white"></span> Kategori Terlaris
                     </h2>
                 </div>
-                <div class="p-0">
+                <div class="divide-y-2 divide-black">
                     @forelse($topCategories as $cat)
-                        <div class="flex items-center gap-4 p-4 border-b border-gray-50 hover:bg-gray-50/80 transition">
-                            <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center p-2 shadow-sm border border-indigo-100/50">
+                        <div class="flex items-center gap-6 p-6 hover:bg-gray-50 transition-all group">
+                            <div class="w-12 h-12 border-[3px] border-black flex items-center justify-center font-black">
                                 @if($cat->icon)
-                                    <img src="{{ Storage::url($cat->icon) }}" class="w-full h-full object-contain">
+                                    <img src="{{ Storage::url($cat->icon) }}" class="w-6 h-6 object-contain grayscale">
                                 @else
-                                    <span class="text-indigo-400 font-bold text-xs">{{ substr($cat->name, 0, 1) }}</span>
+                                    {{ substr($cat->name, 0, 1) }}
                                 @endif
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <h4 class="text-sm font-bold text-gray-900 truncate">{{ $cat->name }}</h4>
+                            <div class="flex-1">
+                                <h4 class="font-black uppercase text-sm tracking-tight">{{ $cat->name }}</h4>
                             </div>
                             <div class="text-right">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-200">
+                                <span class="px-3 py-1 border-2 border-black bg-white text-[9px] font-black uppercase italic">
                                     {{ $cat->ordered_count }} Penjualan
                                 </span>
                             </div>
                         </div>
                     @empty
-                        <div class="p-8 text-center text-gray-400 text-sm">Tidak ada data Kategori.</div>
+                        <div class="p-12 text-center text-gray-400 font-black uppercase text-xs">Tidak Ada Data</div>
                     @endforelse
                 </div>
             </div>
         </div>
 
-        <!-- Recent Transactions -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
-            <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
-                <h2 class="font-black text-gray-900 text-lg">Live Order Stream</h2>
-                <a href="{{ route('admin.transactions') }}" class="text-indigo-600 text-sm hover:text-indigo-800 font-bold transition flex items-center gap-1">Lihat Semua <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg></a>
+        <!-- Recent Transactions (Live Order Stream) -->
+        <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden mb-8">
+            <div class="px-8 py-6 border-b-[3px] border-black bg-black text-white flex justify-between items-center">
+                <h2 class="font-black text-xl uppercase tracking-tighter flex items-center gap-3 italic">
+                    <span class="w-3 h-3 bg-white"></span> Transaksi Terkini
+                </h2>
+                <a href="{{ route('admin.transactions') }}" class="text-[10px] font-black uppercase underline decoration-2 hover:no-underline transition-all">Lihat Semua Pesanan</a>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-gray-600">
-                    <thead class="bg-gray-50 text-gray-700 uppercase text-[11px] font-black tracking-wider">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-100 border-b-2 border-black text-black font-black uppercase">
                         <tr>
-                            <th class="px-6 py-4">Pembeli & Order ID</th>
-                            <th class="px-6 py-4">Status & Waktu</th>
-                            <th class="px-6 py-4 text-right">Nilai Transaksi (GMV)</th>
+                            <th class="px-6 py-4">Pembeli</th>
+                            <th class="px-6 py-4 text-center">Status</th>
+                            <th class="px-6 py-4 text-right">Nilai GMV</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="divide-y-2 divide-gray-100 font-bold">
                         @forelse($recentTransactions as $trx)
-                        <tr class="hover:bg-gray-50/50 transition duration-150">
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-900 text-sm">{{ $trx->buyer->name }}</div>
-                                <div class="text-xs text-gray-400 font-medium font-mono mt-0.5">#{{ $trx->id }} • {{ $trx->payment_method_code }}</div>
+                        <tr class="hover:bg-gray-50 transition-all">
+                            <td class="px-6 py-6">
+                                <div class="uppercase text-sm">{{ $trx->buyer->name }}</div>
+                                <div class="text-[9px] font-mono text-gray-400 uppercase mt-1">#{{ $trx->id }} • {{ $trx->payment_method_code }}</div>
                             </td>
-                            <td class="px-6 py-4">
-                                @php
-                                    $statusDetails = [
-                                        'waiting_payment' => ['bg-yellow-100 text-yellow-700 border-yellow-200', 'Menunggu Bayar'],
-                                        'pending' => ['bg-orange-100 text-orange-700 border-orange-200', 'Verifikasi Admin'],
-                                        'paid_verified' => ['bg-blue-100 text-blue-700 border-blue-200', 'Dibayar'],
-                                        'processing' => ['bg-indigo-100 text-indigo-700 border-indigo-200', 'Diproses'],
-                                        'shipped' => ['bg-purple-100 text-purple-700 border-purple-200', 'Dikirim'],
-                                        'received' => ['bg-emerald-100 text-emerald-700 border-emerald-200', 'Diterima'],
-                                        'completed' => ['bg-emerald-100 text-emerald-800 border-emerald-300', 'Selesai'],
-                                        'cancelled' => ['bg-red-100 text-red-700 border-red-200', 'Dibatalkan'],
-                                    ];
-                                    $s = $statusDetails[$trx->status] ?? ['bg-gray-100 text-gray-600', ucfirst($trx->status)];
-                                @endphp
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-black border {{ $s[0] }} shadow-sm">
-                                    {{ $s[1] }}
+                            <td class="px-6 py-6 text-center">
+                                <span class="px-3 py-1 border-2 border-black bg-white text-[9px] font-black uppercase inline-block">
+                                    {{ str_replace('_', ' ', $trx->status) }}
                                 </span>
-                                <div class="text-[11px] text-gray-400 font-medium mt-1">{{ $trx->created_at->diffForHumans() }}</div>
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="font-black text-gray-900">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</div>
+                            <td class="px-6 py-6 text-right font-black text-sm">
+                                Rp {{ number_format($trx->total_amount, 0, ',', '.') }}
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="3" class="px-6 py-12 text-center text-gray-400 text-sm">Tidak ada pergerakan transaksi baru.</td>
+                            <td colspan="3" class="px-6 py-20 text-center text-gray-400 font-black uppercase italic tracking-widest">Buffer Empty</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -237,6 +235,10 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+        Chart.defaults.font.weight = 'bold';
+        Chart.defaults.color = '#000';
+
         // --- 1. PERFORMANCE LINE CHART ---
         const ctxPerformance = document.getElementById('performanceChart');
         if(ctxPerformance) {
@@ -248,88 +250,60 @@
                     labels: chartData.labels,
                     datasets: [
                         {
-                            label: 'GMV (Penjualan Kotor) Rp',
+                            label: 'GMV (Kotor)',
                             data: chartData.sales,
-                            borderColor: '#3730A3', // Indigo-800
-                            backgroundColor: 'rgba(55, 48, 163, 0.08)',
-                            borderWidth: 3,
+                            borderColor: '#000',
+                            backgroundColor: 'rgba(0,0,0,0.05)',
+                            borderWidth: 4,
                             fill: true,
-                            tension: 0.3,
-                            pointBackgroundColor: '#3730A3',
+                            tension: 0,
+                            pointBackgroundColor: '#000',
                             pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: '#3730A3',
-                            pointRadius: 3,
-                            pointHoverRadius: 6
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 8
                         },
                         {
-                            label: 'Net Platform Revenue (Rp)',
+                            label: 'Pendapatan Bersih',
                             data: chartData.profit,
-                            borderColor: '#059669', // Emerald-600
-                            backgroundColor: 'rgba(5, 150, 105, 0.08)',
-                            borderWidth: 3,
+                            borderColor: '#999',
+                            backgroundColor: 'rgba(153,153,153,0.05)',
+                            borderWidth: 4,
                             fill: true,
-                            tension: 0.3,
-                            pointBackgroundColor: '#059669',
+                            tension: 0,
+                            pointBackgroundColor: '#999',
                             pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: '#059669',
-                            pointRadius: 3,
-                            pointHoverRadius: 6
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 8
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
                     plugins: {
                         legend: {
                             position: 'top',
                             align: 'end',
                             labels: {
-                                usePointStyle: true,
-                                boxWidth: 8,
-                                padding: 20,
-                                font: { family: "'Inter', sans-serif", size: 12, weight: 'bold' }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                            titleFont: { family: "'Inter', sans-serif", size: 13, weight: 'bold' },
-                            bodyFont: { family: "'Inter', sans-serif", size: 13, weight: '500' },
-                            padding: 12,
-                            cornerRadius: 12,
-                            boxPadding: 6,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) { label += ': '; }
-                                    if (context.parsed.y !== null) {
-                                        label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(context.parsed.y);
-                                    }
-                                    return label;
-                                }
+                                boxWidth: 12,
+                                boxHeight: 12,
+                                padding: 25,
+                                font: { size: 11, weight: '900' }
                             }
                         }
                     },
                     scales: {
-                        x: {
-                            grid: { display: false, drawBorder: false },
-                            ticks: { font: { family: "'Inter', sans-serif", weight: '600', color: '#6B7280' } }
-                        },
-                        y: {
-                            grid: { color: '#f3f4f6', drawBorder: false },
+                        x: { border: { width: 3, color: '#000' }, grid: { display: false } },
+                        y: { 
+                            border: { width: 3, color: '#000' },
+                            grid: { color: '#eee' },
                             ticks: {
-                                font: { family: "'Inter', sans-serif", weight: '600', color: '#6B7280' },
-                                maxTicksLimit: 6,
                                 callback: function(value) {
-                                    if(value >= 1000000) return 'Rp ' + (value / 1000000) + ' Jt';
-                                    if(value >= 1000) return 'Rp ' + (value / 1000) + ' Rb';
-                                    return 'Rp ' + value;
+                                    if(value >= 1000000) return (value / 1000000) + 'M';
+                                    if(value >= 1000) return (value / 1000) + 'K';
+                                    return value;
                                 }
                             }
                         }
@@ -346,41 +320,26 @@
             new Chart(ctxDoughnut.getContext('2d'), {
                 type: 'doughnut',
                 data: {
-                    labels: ['Selesai', 'Pending/Proses', 'Batal'],
+                    labels: ['Selesai', 'Menunggu', 'Gagal'],
                     datasets: [{
                         data: [orderStatusData.completed, orderStatusData.pending, orderStatusData.cancelled],
-                        backgroundColor: [
-                            '#10B981', // Emerald 500
-                            '#F59E0B', // Amber 500
-                            '#EF4444'  // Red 500
-                        ],
-                        borderWidth: 0,
-                        hoverOffset: 4
+                        backgroundColor: ['#000', '#666', '#ccc'],
+                        borderWidth: 3,
+                        borderColor: '#fff',
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '75%',
+                    cutout: '70%',
                     plugins: {
                         legend: {
                             position: 'bottom',
                             labels: {
-                                usePointStyle: true,
-                                padding: 20,
-                                font: { family: "'Inter', sans-serif", size: 12, weight: 'bold' }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                            titleFont: { family: "'Inter', sans-serif", size: 13, weight: 'bold' },
-                            bodyFont: { family: "'Inter', sans-serif", size: 14, weight: 'bold' },
-                            padding: 12,
-                            cornerRadius: 8,
-                            callbacks: {
-                                label: function(context) {
-                                    return ' ' + context.label + ': ' + context.parsed + ' Trx';
-                                }
+                                boxWidth: 12,
+                                boxHeight: 12,
+                                padding: 25,
+                                font: { size: 10, weight: '900' }
                             }
                         }
                     }

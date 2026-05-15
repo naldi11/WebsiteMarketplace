@@ -13,6 +13,7 @@ use App\Models\Voucher;
 use App\Models\PaymentMethod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use App\Models\SellerBalance;
 
 class TransactionControllerApi extends Controller
@@ -62,7 +63,7 @@ class TransactionControllerApi extends Controller
     public function show(Request $request, $id)
     {
         $transaction = Transaction::where('buyer_id', $request->user()->id)
-            ->with(['items.product', 'seller', 'review'])
+            ->with(['items.product', 'seller', 'buyer', 'review'])
             ->findOrFail($id);
 
         // Mark as seen when viewed
@@ -390,7 +391,19 @@ class TransactionControllerApi extends Controller
         // Extract category IDs from items
         $itemCategoryIds = collect($items)->pluck('product.category_id')->unique()->toArray();
 
-        if ($request->filled('voucher_code')) {
+        if ($request->filled('user_voucher_id')) {
+            $uv = \App\Models\UserVoucher::where('id', $request->user_voucher_id)
+                ->where('user_id', $userId)
+                ->where('is_used', false)
+                ->first();
+            if ($uv) {
+                $voucher = $uv->voucher;
+                if ($voucher && $voucher->isValidFor($totalPrice, $userId, $itemCategoryIds)) {
+                    $discount = $voucher->calculateDiscount($totalPrice);
+                    $appliedVoucher = $voucher;
+                }
+            }
+        } elseif ($request->filled('voucher_code')) {
             $voucher = Voucher::where('code', strtoupper($request->voucher_code))->where('is_active', true)->first();
             if ($voucher && $voucher->isValidFor($totalPrice, $userId, $itemCategoryIds)) {
                 $discount = $voucher->calculateDiscount($totalPrice);
@@ -518,17 +531,44 @@ class TransactionControllerApi extends Controller
             $discount = 0;
             $appliedVoucher = null;
 
-            // Extract category IDs for validation in confirmation
-            $itemCategoryIds = collect($itemsToCheckout)->pluck('product.category_id')->unique()->toArray();
+        // Extract category IDs for validation in confirmation
+        $itemCategoryIds = collect($itemsToCheckout)->pluck('product.category_id')->unique()->toArray();
 
-            if ($request->filled('voucher_code')) {
-                $voucher = Voucher::where('code', strtoupper($request->voucher_code))->where('is_active', true)->first();
+        if ($request->filled('user_voucher_id')) {
+            $userVoucher = \App\Models\UserVoucher::where('id', $request->user_voucher_id)
+                ->where('user_id', $userId)
+                ->where('is_used', false)
+                ->first();
+
+            if ($userVoucher) {
+                $voucher = $userVoucher->voucher;
                 if ($voucher && $voucher->isValidFor($totalPrice, $userId, $itemCategoryIds)) {
                     $discount = $voucher->calculateDiscount($totalPrice);
                     $appliedVoucher = $voucher;
+                    
+                    // Mark as used
+                    $userVoucher->update([
+                        'is_used' => true,
+                        'used_at' => now()
+                    ]);
+                    
+                    // Also increment master count
                     $voucher->increment('usage_count');
+                } else {
+                    throw new \Exception('Voucher tidak memenuhi syarat atau kadaluarsa.');
                 }
+            } else {
+                throw new \Exception('Voucher sudah digunakan atau tidak valid.');
             }
+        } elseif ($request->filled('voucher_code')) {
+            // Legacy support for plain code (optional)
+            $voucher = Voucher::where('code', strtoupper($request->voucher_code))->where('is_active', true)->first();
+            if ($voucher && $voucher->isValidFor($totalPrice, $userId, $itemCategoryIds)) {
+                $discount = $voucher->calculateDiscount($totalPrice);
+                $appliedVoucher = $voucher;
+                $voucher->increment('usage_count');
+            }
+        }
 
             $adminFee = 0;
             if ($paymentMethod) {
@@ -552,13 +592,28 @@ class TransactionControllerApi extends Controller
                 'admin_fee' => $adminFee,
                 'delivery_type' => $request->delivery_type,
                 'status' => 'waiting_payment',
-                'expires_at' => now()->addHours(24),
+                'expires_at' => now()->addMinutes(15),
                 'payment_method' => $paymentMethod->name,
                 'payment_method_code' => $paymentMethod->code,
                 'shipping_address' => $address->full_address,
                 'shipping_address_id' => $request->user_address_id,
                 'voucher_code' => $appliedVoucher ? $appliedVoucher->code : null,
-                'discount_total' => $discount
+                'discount_total' => $discount,
+            ]);
+
+            // Generate nomor transaksi & kode VA/QR yang aman (tidak mengekspos ID)
+            $txNumber = 'TXN' . strtoupper(Str::random(3)) . date('ymd') . strtoupper(Str::random(4));
+            $vaToken  = strtoupper(Str::random(16)); // Token acak 16 karakter
+            $vaDisplay = '8800' . substr(str_pad($transaction->id, 8, '0', STR_PAD_LEFT), 0, 4)
+                       . '-' . strtoupper(Str::random(4))
+                       . '-' . strtoupper(Str::random(4));
+            $qrToken  = 'MEYPAY-QR-' . strtoupper(Str::random(8)) . '-' . strtoupper(Str::random(8));
+
+            $transaction->update([
+                'transaction_number' => $txNumber,
+                'meypay_va'          => $vaDisplay,
+                'meypay_va_token'    => $vaToken,
+                'meypay_qr_content'  => $qrToken,
             ]);
 
             \App\Models\TransactionStatusLog::create([
@@ -812,10 +867,57 @@ class TransactionControllerApi extends Controller
             'changed_by' => $request->user()->id
         ]);
 
+        // ============================================================
+        // Lepas dana ke penjual dengan potongan 10% platform
+        // ============================================================
+        try {
+            $grossAmount = $transaction->seller_amount;
+            $platformFee = round($grossAmount * 0.10);
+            $netToSeller = $grossAmount - $platformFee;
+
+            $buyerWallet  = \App\Models\Wallet::getOrCreate($transaction->buyer_id);
+            $sellerWallet = \App\Models\Wallet::getOrCreate($transaction->seller_id);
+
+            // Kurangi pending_balance buyer (escrow)
+            if ($buyerWallet->pending_balance >= $grossAmount) {
+                $buyerWallet->pending_balance -= $grossAmount;
+                $buyerWallet->save();
+            }
+
+            // Kredit net ke penjual
+            $sellerWallet->credit(
+                $netToSeller,
+                'payout',
+                "Penjualan #TXN-{$transaction->id} (dipotong 10% platform)",
+                'transaction',
+                $transaction->id
+            );
+
+            // Catat pendapatan platform
+            \App\Models\PlatformEarning::recordEarning(
+                $transaction->id,
+                $platformFee,
+                0,
+                "10% service fee dari TXN #{$transaction->id}"
+            );
+
+            $transaction->update(['funds_released_at' => now(), 'status' => 'completed']);
+
+            \App\Models\TransactionStatusLog::create([
+                'transaction_id' => $transaction->id,
+                'status'         => 'completed',
+                'note'           => "Dana Rp " . number_format($netToSeller, 0, ',', '.') . " dilepas ke penjual (10% platform fee = Rp " . number_format($platformFee, 0, ',', '.') . ")",
+                'changed_by'     => $request->user()->id,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error("Failed to release funds for Transaction #{$transaction->id}: " . $e->getMessage());
+        }
+
         return response()->json([
-            'status' => 'success',
-            'message' => 'Barang diterima! Terima kasih.',
-            'data' => $transaction
+            'status'  => 'success',
+            'message' => 'Barang diterima! Dana akan segera diteruskan ke penjual.',
+            'data'    => $transaction
         ]);
     }
 
@@ -960,5 +1062,94 @@ class TransactionControllerApi extends Controller
         $weightSurcharge = ($weightKg > 1) ? ($weightKg - 1) * $perKgRate : 0;
 
         return $baseCost + $weightSurcharge;
+    }
+    /**
+     * Check payment status (for polling)
+     */
+    public function checkPaymentStatus(Request $request, $id)
+    {
+        $transaction = Transaction::where('buyer_id', $request->user()->id)
+            ->findOrFail($id);
+            
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'transaction_id' => $transaction->id,
+                'payment_status' => $transaction->status,
+                'paid_at' => $transaction->paid_at
+            ]
+        ]);
+    }
+
+    /**
+     * Simulate Payment using MeyPay Wallet Balance (Sandbox)
+     */
+    public function payWithWallet(Request $request, $id)
+    {
+        $transaction = Transaction::where('buyer_id', $request->user()->id)
+            ->findOrFail($id);
+
+        if ($transaction->status !== 'waiting_payment') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Transaksi sudah dibayar atau dibatalkan.',
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $wallet = \App\Models\Wallet::getOrCreate($request->user()->id);
+
+            if ($wallet->balance < $transaction->total_amount) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Saldo MeyPay tidak mencukupi. Silakan lakukan Top Up terlebih dahulu.',
+                ], 400);
+            }
+
+            // Debit saldo & CATAT ke wallet_transactions
+            $wallet->debit(
+                $transaction->total_amount,
+                'payment',
+                'Pembayaran Pesanan ' . ($transaction->transaction_number ?? '#' . $transaction->id),
+                'transaction',
+                $transaction->id
+            );
+
+            // Pindahkan sebagian ke pending escrow (uang seller)
+            $wallet->pending_balance += $transaction->seller_amount;
+            $wallet->save();
+
+            $transaction->update([
+                'status'     => 'paid_verified',
+                'paid_at'    => now(),
+                'buyer_seen' => true,
+            ]);
+
+            \App\Models\TransactionStatusLog::create([
+                'transaction_id' => $transaction->id,
+                'status'         => 'paid_verified',
+                'note'           => 'Pembayaran MeyPay Wallet berhasil (Otomatis)',
+                'changed_by'     => $request->user()->id,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Pembayaran berhasil!',
+                'data'    => [
+                    'transaction_id'     => $transaction->id,
+                    'transaction_number' => $transaction->transaction_number,
+                    'total_amount'       => $transaction->total_amount,
+                    'paid_at'            => $transaction->paid_at,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 }

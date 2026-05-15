@@ -32,8 +32,6 @@ class AuthControllerApi extends Controller
         ];
 
         if ($request->role === 'seller') {
-            $rules['shop_name'] = 'required|string|max:255';
-            $rules['address'] = 'required|string|max:500';
             $rules['latitude'] = 'nullable|numeric';
             $rules['longitude'] = 'nullable|numeric';
         }
@@ -53,11 +51,39 @@ class AuthControllerApi extends Controller
             'phone' => $phoneInput,
             'password' => Hash::make($request->password),
             'role' => $request->role === 'seller' ? 'seller' : 'buyer',
-            'shop_name' => $request->role === 'seller' ? $request->shop_name : null,
-            'address' => $request->role === 'seller' ? $request->address : null,
+            'shop_name' => $request->name, // Set shop name as user name by default
+            'address' => null,
             'latitude' => $request->role === 'seller' ? $request->latitude : null,
             'longitude' => $request->role === 'seller' ? $request->longitude : null,
         ]);
+
+        // Anti-Fraud Device Tracking & New User Voucher
+        $deviceId = $request->device_id;
+        if ($deviceId) {
+            $deviceLog = \App\Models\DeviceLog::where('device_unique_id', $deviceId)->first();
+            
+            if (!$deviceLog) {
+                // First time this device is used
+                \App\Models\DeviceLog::create([
+                    'device_unique_id' => $deviceId,
+                    'first_user_id' => $user->id,
+                    'is_new_user_claimed' => true
+                ]);
+
+                // Give "NEW USER" Voucher
+                $newVoucher = \App\Models\Voucher::where('code', 'NEWUSER50')->first();
+                if ($newVoucher) {
+                    \App\Models\UserVoucher::create([
+                        'user_id' => $user->id,
+                        'voucher_id' => $newVoucher->id,
+                        'claimed_at' => now(),
+                        'is_used' => false
+                    ]);
+                }
+            } else {
+                // Device already exists, no voucher given
+            }
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

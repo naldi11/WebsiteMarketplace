@@ -64,8 +64,25 @@
                         </select>
                     </div>
                     <div>
+                        <label for="condition" class="block text-sm font-medium text-gray-700">Kondisi</label>
+                        <select name="condition" id="condition" required
+                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <option value="like_new" {{ (old('condition', $product->condition) == 'like_new') ? 'selected' : '' }}>Seperti Baru</option>
+                            <option value="used" {{ (old('condition', $product->condition) == 'used') ? 'selected' : '' }}>Bekas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
                         <label for="stock" class="block text-sm font-medium text-gray-700">Stok</label>
                         <input type="number" name="stock" id="stock" value="{{ old('stock', $product->stock) }}" min="0"
+                            required
+                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="weight" class="block text-sm font-medium text-gray-700">Berat (Gram)</label>
+                        <input type="number" name="weight" id="weight" value="{{ old('weight', $product->weight) }}" min="1"
                             required
                             class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                     </div>
@@ -84,24 +101,20 @@
                         value="{{ old('discount_price', $product->discount_price) }}" min="0"
                         class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                         {{ $product->hasDiscount() && old('remove_discount') ? 'disabled' : '' }}>
-                    <p class="text-xs text-gray-500 mt-1">Kosongkan jika tidak ada diskon. Jumlah diskon tidak boleh lebih dari harga normal produk.</p>
-                    @error('discount_price')
-                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                    @enderror
-                    @if($product->hasDiscount())
-                        <label class="flex items-center gap-2 mt-2 text-sm text-red-600 cursor-pointer">
-                            <input type="checkbox" name="remove_discount" value="1"
-                                class="rounded border-gray-300 text-red-600 focus:ring-red-500" {{ old('remove_discount') ? 'checked' : '' }}>
-                            Hapus diskon (kembalikan ke harga normal)
-                        </label>
-                    @endif
+                    <p class="text-xs text-gray-500 mt-1">Kosongkan jika tidak ada diskon.</p>
                 </div>
 
                 <div>
                     <label for="location" class="block text-sm font-medium text-gray-700">Lokasi Barang</label>
-                    <input type="text" name="location" id="location" required
-                        value="{{ old('location', $product->location) }}"
-                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <div class="flex gap-2">
+                        <input type="text" name="location" id="location" required
+                            value="{{ old('location', $product->location) }}"
+                            class="mt-1 block flex-1 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <button type="button" id="btnGetLocation" class="mt-1 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm font-bold">📍 GPS</button>
+                    </div>
+                    <div id="map" class="mt-2 rounded-lg border border-gray-200" style="height: 200px; z-index: 1;"></div>
+                    <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude', $product->latitude) }}">
+                    <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude', $product->longitude) }}">
                 </div>
 
                 <div>
@@ -117,4 +130,57 @@
             </form>
         </div>
     </div>
+    @push('styles')
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    @endpush
+
+    @push('scripts')
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            // Map Initialization
+            var initialLat = {{ $product->latitude ?? -6.2000 }};
+            var initialLng = {{ $product->longitude ?? 106.8166 }};
+            
+            var map = L.map('map').setView([initialLat, initialLng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            var marker = L.marker([initialLat, initialLng], {draggable: true}).addTo(map);
+
+            function updateMarker(lat, lng) {
+                marker.setLatLng([lat, lng]);
+                map.setView([lat, lng], 15);
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+            }
+
+            marker.on('dragend', function(e) {
+                var pos = marker.getLatLng();
+                updateMarker(pos.lat, pos.lng);
+            });
+
+            map.on('click', function(e) {
+                updateMarker(e.latlng.lat, e.latlng.lng);
+            });
+
+            document.getElementById('btnGetLocation').addEventListener('click', function () {
+                const btn = this;
+                if (navigator.geolocation) {
+                    btn.innerHTML = 'Mencari...';
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        updateMarker(lat, lng);
+                        btn.innerHTML = '✅ Lokasi Device';
+                    }, function (error) {
+                        alert('Gagal mendapatkan lokasi GPS: ' + error.message);
+                        btn.innerHTML = '📍 GPS';
+                    });
+                } else {
+                    alert("Geolocation tidak didukung oleh browser.");
+                }
+            });
+        </script>
+    @endpush
 @endsection

@@ -1,113 +1,120 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="mb-6 flex justify-between items-center">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">Manajemen Banner Iklan</h1>
-        <p class="text-gray-500 mt-1">Kelola banner promo yang tampil di beranda aplikasi.</p>
+<div class="pt-0 pb-8">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+        <div>
+            <h1 class="text-4xl font-black tracking-tighter uppercase italic text-black">Banner Iklan</h1>
+            <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest text-black">Promosi Depan & Distribusi Banner</p>
+        </div>
+        <button onclick="document.getElementById('addBannerModal').classList.remove('hidden')" class="px-6 py-3 bg-black text-white border-[3px] border-black text-sm font-black uppercase tracking-tighter hover:bg-white hover:text-black transition-all neo-brutalism italic flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+            Tambah Banner
+        </button>
     </div>
-    <button onclick="document.getElementById('addBannerModal').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        Tambah Banner
-    </button>
+
+    <!-- Banner Matrix - Neo Brutalism -->
+    <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden mb-12">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-gray-100 border-b-[3px] border-black text-black font-black uppercase italic">
+                    <tr>
+                        <th class="px-8 py-6">Gambar Banner</th>
+                        <th class="px-8 py-6">Judul</th>
+                        <th class="px-8 py-6">Status</th>
+                        <th class="px-8 py-6 text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y-2 divide-gray-100 font-bold">
+                    @forelse($adBanners as $banner)
+                    <tr class="hover:bg-gray-50 transition-all">
+                        <td class="px-8 py-6">
+                            @if($banner->image)
+                                <div class="h-20 w-40 overflow-hidden">
+                                    <img src="{{ Storage::url($banner->image) }}" alt="{{ $banner->title }}" class="h-full w-full object-cover">
+                                </div>
+                            @else
+                                <div class="h-20 w-40 border-[3px] border-black bg-gray-100 flex items-center justify-center font-black italic text-gray-400 uppercase">TIDAK ADA GAMBAR</div>
+                            @endif
+                        </td>
+                        <td class="px-8 py-6 font-black text-sm text-black uppercase italic tracking-tighter">{{ $banner->title }}</td>
+                        <td class="px-8 py-6">
+                            <span class="px-3 py-1 border-2 border-black text-[10px] font-black uppercase tracking-widest {{ $banner->is_active ? 'bg-black text-white' : 'bg-white text-black' }}">
+                                {{ $banner->is_active ? 'AKTIF' : 'NONAKTIF' }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6 text-right whitespace-nowrap">
+                            <div class="flex justify-end gap-3 font-black uppercase italic text-[10px]">
+                                <button onclick="editBanner({{ $banner }})" class="px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all italic">Edit</button>
+                                <form action="{{ route('admin.ad_banners.destroy', $banner) }}" method="POST" class="inline-block" onsubmit="return confirm('Hapus banner {{ $banner->title }}?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="px-4 py-2 bg-black text-white border-2 border-black hover:bg-white hover:text-black transition-all">Hapus</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="4" class="px-8 py-24 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-16 h-16 border-[3px] border-black flex items-center justify-center font-black text-2xl mb-4 italic">!</div>
+                                <p class="text-xs font-black uppercase tracking-widest text-gray-400 italic">Belum Ada Banner</p>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-gray-50 border-b border-gray-100">
-                    <th class="py-3 px-6 font-semibold text-sm text-gray-600 uppercase tracking-wider">Gambar</th>
-                    <th class="py-3 px-6 font-semibold text-sm text-gray-600 uppercase tracking-wider">Judul</th>
-                    <th class="py-3 px-6 font-semibold text-sm text-gray-600 uppercase tracking-wider">Status</th>
-                    <th class="py-3 px-6 font-semibold text-sm text-gray-600 uppercase tracking-wider text-right">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                @forelse($adBanners as $banner)
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="py-4 px-6">
-                        @if($banner->image)
-                            <img src="{{ Storage::url($banner->image) }}" alt="{{ $banner->title }}" class="h-16 w-32 object-cover rounded shadow-sm">
-                        @else
-                            <div class="h-16 w-32 bg-gray-100 flex items-center justify-center rounded text-gray-400">No Image</div>
-                        @endif
-                    </td>
-                    <td class="py-4 px-6 font-medium text-gray-900">{{ $banner->title }}</td>
-                    <td class="py-4 px-6">
-                        @if($banner->is_active)
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Aktif
-                            </span>
-                        @else
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                Nonaktif
-                            </span>
-                        @endif
-                    </td>
-                    <td class="py-4 px-6 text-right">
-                        <button onclick="editBanner({{ $banner }})" class="text-indigo-600 hover:text-indigo-900 font-medium text-sm mr-3">Edit</button>
-                        <form action="{{ route('admin.ad_banners.destroy', $banner) }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin ingin menghapus banner ini?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-red-600 hover:text-red-900 font-medium text-sm">Hapus</button>
-                        </form>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="4" class="py-8 text-center text-gray-500">
-                        Belum ada banner iklan.
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Modal Tambah/Edit -->
-<div id="addBannerModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden z-50 overflow-y-auto">
-    <div class="min-h-screen px-4 text-center">
-        <!-- Spacer -->
-        <span class="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
-        
-        <div class="inline-block w-full max-w-md p-6 my-8 text-left align-middle bg-white shadow-xl rounded-2xl transform transition-all">
-            <div class="flex justify-between items-center mb-5">
-                <h3 class="text-lg font-bold text-gray-900" id="modalTitle">Tambah Banner Iklan</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+<!-- Modal Tambah/Edit Neo Brutalism -->
+<div id="addBannerModal" class="fixed inset-0 bg-black/60 hidden z-50 overflow-y-auto transition-all duration-200 backdrop-blur-sm">
+    <div class="min-h-screen px-4 text-center flex items-center justify-center">
+        <div class="inline-block w-full max-w-md p-0 my-8 text-left align-middle bg-white transform transition-all border-[4px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]">
+            
+            <div class="bg-black p-8 text-white flex justify-between items-center">
+                <div>
+                    <h3 class="text-3xl font-black uppercase italic tracking-tighter" id="modalTitle">Konfigurasi Banner</h3>
+                    <p class="text-gray-400 text-[10px] mt-1 font-mono uppercase tracking-widest">Upload & Atur Banner Promosi</p>
+                </div>
+                <button onclick="closeModal()" class="border-2 border-white w-10 h-10 flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
 
-            <form id="bannerForm" action="{{ route('admin.ad_banners.store') }}" method="POST" enctype="multipart/form-data">
+            <form id="bannerForm" action="{{ route('admin.ad_banners.store') }}" method="POST" enctype="multipart/form-data" class="p-10 bg-white">
                 @csrf
                 <input type="hidden" name="_method" id="formMethod" value="POST">
 
-                <div class="space-y-4">
+                <div class="space-y-8">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Judul Banner</label>
-                        <input type="text" name="title" id="bannerTitle" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow">
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Judul Banner</label>
+                        <input type="text" name="title" id="bannerTitle" required placeholder="SUMMER_COLLECTION_V1"
+                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black uppercase italic text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Gambar Banner</label>
-                        <input type="file" name="image" id="bannerImage" accept="image/*"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow">
-                        <p class="text-xs text-gray-500 mt-1" id="imageHelp">Format: JPG, PNG. Ukuran ideal melebar (landscape).</p>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">File Gambar</label>
+                        <div class="relative">
+                            <input type="file" name="image" id="bannerImage" accept="image/*"
+                                class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-mono text-[10px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        </div>
+                        <p class="text-[9px] text-gray-400 mt-3 font-mono uppercase tracking-widest italic" id="imageHelp">* Matrix support: JPG/PNG. Aspect ratio: 2:1 Recommended.</p>
                     </div>
 
-                    <div class="flex items-center">
+                    <div class="flex items-center gap-4 p-4 border-[3px] border-black bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <input type="checkbox" name="is_active" id="bannerIsActive" value="1" checked
-                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                        <label for="bannerIsActive" class="ml-2 block text-sm text-gray-900">Aktifkan Banner</label>
+                            class="w-8 h-8 text-black border-[3px] border-black rounded-none focus:ring-0 cursor-pointer">
+                        <label for="bannerIsActive" class="text-xs font-black uppercase italic tracking-widest cursor-pointer">Banner ini AKTIF</label>
                     </div>
                 </div>
 
-                <div class="mt-8 flex gap-3 justify-end">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Simpan Banner</button>
+                <div class="mt-12 flex gap-6">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-8 py-5 text-sm font-black border-[3px] border-black hover:bg-black hover:text-white transition-all uppercase italic">Batal</button>
+                    <button type="submit" class="flex-1 px-8 py-5 text-sm font-black bg-black text-white border-[3px] border-black hover:bg-white hover:text-black transition-all uppercase italic shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">Simpan Banner</button>
                 </div>
             </form>
         </div>
@@ -117,18 +124,20 @@
 @push('scripts')
 <script>
     function closeModal() {
-        document.getElementById('addBannerModal').classList.add('hidden');
+        const modal = document.getElementById('addBannerModal');
+        modal.classList.add('hidden');
         document.getElementById('bannerForm').reset();
         document.getElementById('bannerForm').action = "{{ route('admin.ad_banners.store') }}";
         document.getElementById('formMethod').value = 'POST';
-        document.getElementById('modalTitle').innerText = 'Tambah Banner Iklan';
+        document.getElementById('modalTitle').innerText = 'Asset Config';
         document.getElementById('bannerImage').required = true;
-        document.getElementById('imageHelp').innerText = 'Format: JPG, PNG. Ukuran ideal melebar (landscape). Wajib diisi.';
+        document.getElementById('imageHelp').innerText = '* Matrix support: JPG/PNG. Aspect ratio: 2:1 Recommended.';
     }
 
     function editBanner(banner) {
-        document.getElementById('addBannerModal').classList.remove('hidden');
-        document.getElementById('modalTitle').innerText = 'Edit Banner Iklan';
+        const modal = document.getElementById('addBannerModal');
+        modal.classList.remove('hidden');
+        document.getElementById('modalTitle').innerText = 'Modify Protocol';
         document.getElementById('bannerForm').action = `/admin/ad-banners/${banner.id}`;
         document.getElementById('formMethod').value = 'PUT';
         
@@ -136,10 +145,9 @@
         document.getElementById('bannerIsActive').checked = banner.is_active == 1;
         
         document.getElementById('bannerImage').required = false;
-        document.getElementById('imageHelp').innerText = 'Biarkan kosong jika tidak ingin mengubah gambar.';
+        document.getElementById('imageHelp').innerText = '* Null value will retain current visual buffer.';
     }
     
-    // Set required true natively
     document.getElementById('bannerImage').required = true;
 </script>
 @endpush

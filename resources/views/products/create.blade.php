@@ -60,13 +60,9 @@
                                         <label for="condition" class="form-label">Kondisi *</label>
                                         <select class="form-select @error('condition') is-invalid @enderror" id="condition"
                                             name="condition" required>
-                                            <option value="new" {{ old('condition') == 'new' ? 'selected' : '' }}>Baru
-                                            </option>
                                             <option value="like_new" {{ old('condition') == 'like_new' ? 'selected' : '' }}>
                                                 Seperti Baru</option>
-                                            <option value="good" {{ old('condition') == 'good' ? 'selected' : '' }}>Baik
-                                            </option>
-                                            <option value="fair" {{ old('condition') == 'fair' ? 'selected' : '' }}>Cukup
+                                            <option value="used" {{ old('condition') == 'used' ? 'selected' : '' }}>Bekas
                                             </option>
                                         </select>
                                         @error('condition')
@@ -77,13 +73,18 @@
 
                                 <div class="col-md-12 mb-3">
                                     <label for="location" class="form-label">Lokasi Barang *</label>
-                                    <div class="input-group">
+                                    <p class="text-muted small mb-2">Klik tombol GPS atau klik langsung pada peta untuk menentukan lokasi barang.</p>
+                                    <div class="input-group mb-3">
                                         <input type="text" class="form-control @error('location') is-invalid @enderror"
                                             id="location" name="location" value="{{ old('location') }}"
-                                            placeholder="Kota/Kabupaten" required>
+                                            placeholder="Detail Lokasi / Kota" required>
                                         <button class="btn btn-outline-secondary fw-bold" type="button"
-                                            id="btnGetLocation">📍 Ambil Lokasi GPS</button>
+                                            id="btnGetLocation">📍 Deteksi Otomatis</button>
                                     </div>
+
+                                    <!-- Map Picker -->
+                                    <div id="map" class="mb-3 rounded border" style="height: 300px; z-index: 1;"></div>
+
                                     <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude') }}">
                                     <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude') }}">
                                     @error('location')
@@ -175,7 +176,12 @@
         </div>
     </section>
 
+    @push('styles')
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    @endpush
+
     @push('scripts')
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
             // Image Preview
             const imgInput = document.getElementById('product_images');
@@ -189,30 +195,54 @@
                         img.style.width = '80px';
                         img.style.height = '80px';
                         img.style.objectFit = 'cover';
-                        img.className = 'rounded';
+                        img.className = 'rounded border';
                         preview.appendChild(img);
                     });
                 });
             }
 
+            // Map Initialization
+            var map = L.map('map').setView([-6.2000, 106.8166], 13); // Default Jakarta
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            var marker = L.marker([-6.2000, 106.8166], {draggable: true}).addTo(map);
+
+            function updateMarker(lat, lng) {
+                marker.setLatLng([lat, lng]);
+                map.setView([lat, lng], 15);
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+            }
+
+            marker.on('dragend', function(e) {
+                var pos = marker.getLatLng();
+                updateMarker(pos.lat, pos.lng);
+            });
+
+            map.on('click', function(e) {
+                updateMarker(e.latlng.lat, e.latlng.lng);
+            });
+
             document.getElementById('btnGetLocation').addEventListener('click', function () {
                 const btn = this;
                 if (navigator.geolocation) {
-                    btn.innerHTML = 'Sedang mencari...';
+                    btn.innerHTML = 'Mencari...';
                     navigator.geolocation.getCurrentPosition(function (position) {
-                        document.getElementById('latitude').value = position.coords.latitude;
-                        document.getElementById('longitude').value = position.coords.longitude;
-                        btn.innerHTML = '✅ Lokasi Tersimpan';
-                        // Opsional: jika GPS didapat set nama lokasi sementara
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        updateMarker(lat, lng);
+                        btn.innerHTML = '✅ Lokasi Device';
                         if (!document.getElementById('location').value) {
-                            document.getElementById('location').value = "Menggunakan GPS Device";
+                            document.getElementById('location').value = "Sekitar Lokasi GPS";
                         }
                     }, function (error) {
                         alert('Gagal mendapatkan lokasi GPS: ' + error.message);
-                        btn.innerHTML = '📍 Ambil Lokasi GPS';
+                        btn.innerHTML = '📍 Deteksi Otomatis';
                     });
                 } else {
-                    alert("Geolocation tidak didukung oleh browser Anda.");
+                    alert("Geolocation tidak didukung oleh browser.");
                 }
             });
         </script>

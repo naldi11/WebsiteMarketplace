@@ -1,125 +1,97 @@
 @extends('layouts.admin')
 
-@section('title', 'Manajemen Transaksi')
+@section('title', 'Transaction Logs')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+    <div class="pt-0 pb-2">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800">Manajemen Transaksi</h1>
-                <p class="text-gray-600 mt-2">Pantau dan kelola semua transaksi di platform.</p>
+                <h1 class="text-4xl font-black tracking-tighter uppercase italic text-black">Log Transaksi</h1>
+                <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest text-black">Aliran Pesanan Global & Kontrol Pembukuan</p>
             </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="mb-6 border-b border-gray-200 bg-white rounded-t-xl shadow-sm px-4">
-            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500">
-                <li class="mr-2">
-                    <a href="{{ route('admin.transactions', ['tab' => 'all']) }}"
-                        class="inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group {{ $tab === 'all' ? 'text-orange-600 border-orange-600 active' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
-                        <i class="fas fa-list-ul mr-2"></i>Semua Pesanan
-                        <span
-                            class="ml-2 bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ $counts['all'] }}</span>
-                    </a>
-                </li>
-                <li class="mr-2">
-                    <a href="{{ route('admin.transactions', ['tab' => 'payment']) }}"
-                        class="inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group {{ $tab === 'payment' ? 'text-orange-600 border-orange-600 active' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
-                        <i class="fas fa-wallet mr-2"></i>Verifikasi Bayar
-                        <span
-                            class="ml-2 bg-orange-100 text-orange-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ $counts['payment'] }}</span>
-                    </a>
-                </li>
-                <li class="mr-2">
-                    <a href="{{ route('admin.transactions', ['tab' => 'release']) }}"
-                        class="inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group {{ $tab === 'release' ? 'text-orange-600 border-orange-600 active' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
-                        <i class="fas fa-hand-holding-usd mr-2"></i>Pelepasan Dana
-                        <span
-                            class="ml-2 bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ $counts['release'] }}</span>
-                    </a>
-                </li>
-            </ul>
+        <!-- Tab Navigation - Neo Brutalism -->
+        <div class="mb-8 border-[3px] border-black bg-white neo-brutalism p-1 inline-flex flex-wrap gap-1">
+            <a href="{{ route('admin.transactions', ['tab' => 'all']) }}"
+                class="px-6 py-2 text-xs font-black uppercase transition-all {{ $tab === 'all' ? 'bg-black text-white' : 'text-black hover:bg-gray-100' }}">
+                Semua Pesanan ({{ $counts['all'] }})
+            </a>
+            <a href="{{ route('admin.transactions', ['tab' => 'payment']) }}"
+                class="px-6 py-2 text-xs font-black uppercase transition-all {{ $tab === 'payment' ? 'bg-black text-white' : 'text-black hover:bg-gray-100' }}">
+                Verifikasi Pembayaran ({{ $counts['payment'] }})
+            </a>
+            <a href="{{ route('admin.transactions', ['tab' => 'release']) }}"
+                class="px-6 py-2 text-xs font-black uppercase transition-all {{ $tab === 'release' ? 'bg-black text-white' : 'text-black hover:bg-gray-100' }}">
+                Lepas Dana ({{ $counts['release'] }})
+            </a>
         </div>
 
-        <!-- Transaction Table -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+        <!-- Transaction Table - Neo Brutalism -->
+        <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden mb-12">
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-50 text-gray-700 font-semibold uppercase text-xs tracking-wider">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-100 border-b-[3px] border-black text-black font-black uppercase italic">
                         <tr>
-                            <th class="px-6 py-4 border-b">ID / Invoice</th>
-                            <th class="px-6 py-4 border-b">Pembeli & Penjual</th>
-                            <th class="px-6 py-4 border-b">Total</th>
-                            <th class="px-6 py-4 border-b">Status</th>
-                            <th class="px-6 py-4 border-b">Tanggal</th>
-                            <th class="px-6 py-4 border-b text-center">Aksi</th>
+                            <th class="px-8 py-6">Referensi</th>
+                            <th class="px-8 py-6">Pihak</th>
+                            <th class="px-8 py-6 text-right">Nilai (GMV)</th>
+                            <th class="px-8 py-6 text-center">Status</th>
+                            <th class="px-8 py-6">Waktu</th>
+                            <th class="px-8 py-6 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y-2 divide-gray-100 font-bold">
                         @forelse($transactions as $tx)
-                            <tr class="hover:bg-gray-50 transition-colors duration-200">
-                                <td class="px-6 py-4">
-                                    <span class="font-bold text-gray-800">#{{ $tx->id }}</span>
-                                    <div class="text-xs text-gray-500 mt-1">INV-{{ str_pad($tx->id, 5, '0', STR_PAD_LEFT) }}
+                            <tr class="hover:bg-gray-50 transition-all">
+                                <td class="px-8 py-6">
+                                    <div class="font-black text-sm text-black uppercase">#{{ $tx->id }}</div>
+                                    <div class="text-[9px] font-mono text-gray-400 mt-1 uppercase">INV-{{ str_pad($tx->id, 5, '0', STR_PAD_LEFT) }}</div>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <div class="flex flex-col gap-1 uppercase">
+                                        <div class="text-black tracking-tight"><span class="text-gray-400 mr-2 font-mono">B:</span>{{ $tx->buyer->name }}</div>
+                                        <div class="text-gray-500 text-[10px]"><span class="text-gray-400 mr-2 font-mono">S:</span>{{ $tx->seller->name ?? 'SYSTEM_ERR' }}</div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm font-medium text-gray-900"><i
-                                                class="fas fa-user text-gray-400 mr-1"></i> B: {{ $tx->buyer->name }}</span>
-                                        <span class="text-xs text-gray-500 mt-1"><i class="fas fa-store text-gray-400 mr-1"></i>
-                                            S: {{ $tx->seller->name ?? '-' }}</span>
-                                    </div>
+                                <td class="px-8 py-6 text-right">
+                                    <div class="font-black text-sm text-black">Rp {{ number_format($tx->total_amount, 0, ',', '.') }}</div>
+                                    <div class="text-[9px] font-mono text-gray-400 uppercase mt-1">{{ $tx->payment_method_code }}</div>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm font-bold text-gray-900">Rp
-                                        {{ number_format($tx->total_amount, 0, ',', '.') }}</div>
-                                    <div class="text-xs text-gray-500">{{ $tx->payment_method_code }}</div>
-                                </td>
-                                <td class="px-6 py-4">
+                                <td class="px-8 py-6 text-center">
                                     @php
-                                        $statusClasses = [
-                                            'pending' => 'bg-orange-100 text-orange-700',
-                                            'paid_verified' => 'bg-blue-100 text-blue-700',
-                                            'processing' => 'bg-indigo-100 text-indigo-700',
-                                            'shipped' => 'bg-purple-100 text-purple-700',
-                                            'received' => 'bg-teal-100 text-teal-700',
-                                            'completed' => 'bg-green-100 text-green-700',
-                                            'payment_rejected' => 'bg-red-100 text-red-700',
-                                            'cancelled' => 'bg-red-100 text-red-700',
-                                        ];
                                         $statusLabels = [
-                                            'pending' => 'Verifikasi Bayar',
-                                            'paid_verified' => 'Siap Kirim',
-                                            'processing' => 'Diproses',
-                                            'shipped' => 'Dikirim',
-                                            'received' => 'Butuh Pelepasan Dana',
-                                            'completed' => 'Selesai',
-                                            'payment_rejected' => 'Pembayaran Ditolak',
-                                            'cancelled' => 'Dibatalkan',
+                                            'pending' => 'MENUNGGU BAYAR',
+                                            'paid_verified' => 'SIAP KIRIM',
+                                            'processing' => 'DIPROSES',
+                                            'shipped' => 'DIKIRIM',
+                                            'received' => 'TUNGGU RILIS',
+                                            'completed' => 'SELESAI',
+                                            'payment_rejected' => 'DITOLAK',
+                                            'cancelled' => 'DIBATALKAN',
                                         ];
+                                        $isCritical = in_array($tx->status, ['pending', 'received', 'payment_rejected', 'cancelled']);
                                     @endphp
-                                    <span
-                                        class="px-3 py-1 rounded-full text-xs font-semibold {{ $statusClasses[$tx->status] ?? 'bg-gray-100 text-gray-700' }}">
+                                    <span class="px-3 py-1 border-2 border-black text-[9px] font-black uppercase {{ $isCritical ? 'bg-black text-white' : 'bg-white text-black' }}">
                                         {{ $statusLabels[$tx->status] ?? $tx->status }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">
+                                <td class="px-8 py-6 font-mono text-[10px] text-gray-400 uppercase">
                                     {{ $tx->created_at->format('d/m/Y H:i') }}
                                 </td>
-                                <td class="px-6 py-4 text-center">
+                                <td class="px-8 py-6 text-center">
                                     <a href="{{ route('admin.transactions.show', $tx->id) }}"
-                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm leading-5 font-semibold rounded-lg text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:shadow-outline-orange transition duration-150 ease-in-out shadow-sm">
-                                        <i class="fas fa-eye mr-2"></i> Detail
+                                        class="inline-block px-4 py-2 border-2 border-black bg-white text-black text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all italic">
+                                        Lihat Detail
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="6" class="px-8 py-24 text-center">
                                     <div class="flex flex-col items-center">
-                                        <i class="fas fa-receipt text-4xl text-gray-200 mb-4"></i>
-                                        <p>Belum ada data transaksi untuk tab ini.</p>
+                                        <div class="w-16 h-16 border-[3px] border-black flex items-center justify-center font-black text-2xl mb-4 italic">?</div>
+                                        <p class="text-xs font-black uppercase tracking-widest text-gray-400 italic">Belum Ada Transaksi</p>
                                     </div>
                                 </td>
                             </tr>
@@ -129,9 +101,9 @@
             </div>
         </div>
 
-        <!-- Pagination -->
+        <!-- Pagination - Neo Brutalism Style -->
         <div class="mt-8">
             {{ $transactions->links() }}
         </div>
     </div>
-@endsection
+@endsection

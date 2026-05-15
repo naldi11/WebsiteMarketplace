@@ -1,201 +1,192 @@
 @extends('layouts.admin')
 
-@section('title', 'Kelola Metode Pembayaran')
+@section('title', 'Payment Protocol')
 
 @section('content')
-<div class="px-4 sm:px-6 lg:px-8 py-8">
-    <div class="sm:flex sm:items-center justify-between mb-8">
+<div class="pt-0 pb-8">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Kelola Metode Pembayaran</h1>
-            <p class="mt-2 text-sm text-gray-700">Atur cara pembayaran yang tersedia untuk pelanggan di aplikasi.</p>
+            <h1 class="text-4xl font-black tracking-tighter uppercase italic text-black">Metode Pembayaran</h1>
+            <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest text-black">Manajemen Gateway Transaksi</p>
         </div>
-        <div class="mt-4 sm:mt-0 sm:ml-16">
-            <button onclick="openAddModal()" class="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Tambah Metode
-            </button>
-        </div>
+        <button onclick="openAddModal()" class="px-6 py-3 bg-black text-white border-[3px] border-black text-sm font-black uppercase tracking-tighter hover:bg-white hover:text-black transition-all neo-brutalism italic flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Tambah Metode Pembayaran
+        </button>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-400 text-green-700 text-sm font-medium rounded-r-md">
-            {{ session('success') }}
+    <!-- Payment Methods Table - Neo Brutalism -->
+    <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden mb-12">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-gray-100 border-b-[3px] border-black text-black font-black uppercase italic">
+                    <tr>
+                        <th class="px-8 py-6">Nama Gateway</th>
+                        <th class="px-8 py-6">Nomor Akun</th>
+                        <th class="px-8 py-6">Tipe</th>
+                        <th class="px-8 py-6">Biaya</th>
+                        <th class="px-8 py-6">Status</th>
+                        <th class="px-8 py-6 text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y-2 divide-gray-100 font-bold">
+                    @forelse($paymentMethods as $pm)
+                    <tr class="hover:bg-gray-50 transition-all">
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="h-12 w-12 border-2 border-black flex items-center justify-center bg-black text-white text-lg font-black italic">
+                                    {{ $pm->icon ?? '💳' }}
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-black text-black uppercase italic tracking-tighter leading-none">{{ $pm->name }}</div>
+                                    <div class="text-[9px] text-gray-400 font-mono tracking-widest uppercase mt-1">{{ $pm->code }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <span class="font-mono bg-white px-3 py-1 border-2 border-black text-[10px] uppercase font-black {{ $pm->account_number ? 'text-black' : 'text-gray-300' }}">
+                                {{ $pm->account_number ?? 'NULL_PTR' }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <span class="px-3 py-1 border-2 border-black text-[9px] font-black uppercase tracking-widest bg-gray-100 italic">
+                                {{ $pm->type_label }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            @if($pm->admin_fee > 0 || $pm->admin_fee_percent > 0)
+                                <div class="flex flex-col text-[10px] text-black font-black italic">
+                                    @if($pm->admin_fee > 0)
+                                        <span>IDR_{{ number_format($pm->admin_fee, 0, ',', '.') }}</span>
+                                    @endif
+                                    @if($pm->admin_fee_percent > 0)
+                                        <span class="text-gray-500">+{{ floatval($pm->admin_fee_percent) }}%</span>
+                                    @endif
+                                </div>
+                            @else
+                                <span class="text-gray-300 italic text-[10px] font-mono">GRATIS</span>
+                            @endif
+                        </td>
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <span class="px-3 py-1 border-2 border-black text-[9px] font-black uppercase tracking-widest {{ $pm->is_active ? 'bg-black text-white' : 'bg-white text-black' }}">
+                                {{ $pm->is_active ? 'AKTIF' : 'NONAKTIF' }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6 text-right whitespace-nowrap">
+                            <div class="flex justify-end gap-3 font-black uppercase italic text-[10px]">
+                                <button onclick='editPaymentMethod(@json($pm))' class="px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all">Edit</button>
+                                <form action="{{ route('admin.payment_methods.destroy', $pm) }}" method="POST" class="inline-block" onsubmit="return confirm('Hapus metode {{ $pm->name }}?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="px-4 py-2 bg-black text-white border-2 border-black hover:bg-white hover:text-black transition-all">Hapus</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-8 py-24 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-16 h-16 border-[3px] border-black flex items-center justify-center font-black text-2xl mb-4 italic">!</div>
+                                <p class="text-xs font-black uppercase tracking-widest text-gray-400 italic">Belum Ada Metode Pembayaran</p>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-    @endif
-
-    <!-- Payment Methods Table -->
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50 text-gray-500 uppercase text-[11px] font-bold tracking-wider">
-                <tr>
-                    <th class="px-6 py-4 text-left">Metode</th>
-                    <th class="px-6 py-4 text-left">Rekening/Akun</th>
-                    <th class="px-6 py-4 text-left">Tipe</th>
-                    <th class="px-6 py-4 text-left">Biaya Admin</th>
-                    <th class="px-6 py-4 text-left">Status</th>
-                    <th class="px-6 py-4 text-right">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-100">
-                @forelse($paymentMethods as $pm)
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <div class="h-10 w-10 flex-shrink-0 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl {{ strlen($pm->icon ?? '') > 4 ? 'text-[8px]' : (strlen($pm->icon ?? '') > 2 ? 'text-xs' : 'text-xl') }} font-black overflow-hidden border border-indigo-100 italic px-0.5 text-center uppercase break-all leading-none">
-                                {{ $pm->icon ?? $pm->type_icon }}
-                            </div>
-                            <div class="ml-4">
-                                <div class="text-sm font-bold text-gray-900 leading-tight">{{ $pm->name }}</div>
-                                <div class="text-[10px] text-gray-400 font-mono tracking-tighter uppercase">{{ $pm->code }}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span class="font-mono bg-gray-50 px-2 py-1 rounded border border-gray-100 text-xs {{ $pm->account_number ? 'text-gray-900 font-bold' : 'text-gray-300' }}">
-                            {{ $pm->account_number ?? 'N/A' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-100">
-                            {{ $pm->type_label }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        @if($pm->admin_fee > 0 || $pm->admin_fee_percent > 0)
-                            <div class="flex flex-col text-[10px] text-gray-700 font-bold">
-                                @if($pm->admin_fee > 0)
-                                    <span>Rp {{ number_format($pm->admin_fee, 0, ',', '.') }}</span>
-                                @endif
-                                @if($pm->admin_fee_percent > 0)
-                                    <span class="text-indigo-500">+{{ floatval($pm->admin_fee_percent) }}%</span>
-                                @endif
-                            </div>
-                        @else
-                            <span class="text-gray-300 italic text-[10px]">Gratis</span>
-                        @endif
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $pm->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
-                            {{ $pm->is_active ? 'Aktif' : 'Non-Aktif' }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <div class="flex justify-end gap-3 font-bold uppercase tracking-widest text-[10px]">
-                            <button onclick='editPaymentMethod(@json($pm))' class="text-indigo-600 hover:text-indigo-800 transition">Edit</button>
-                            <form action="{{ route('admin.payment_methods.destroy', $pm) }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin ingin menghapus metode {{ $pm->name }}?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-400 hover:text-red-600 transition">Hapus</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="6" class="px-6 py-12 text-center">
-                        <div class="text-gray-400 mb-2 text-3xl">📭</div>
-                        <p class="text-gray-500 font-medium">Belum ada metode pembayaran.</p>
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
     </div>
 </div>
 
-<!-- Modal Tambah/Edit -->
-<div id="paymentModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden z-50 overflow-y-auto">
-    <div class="min-h-screen px-4 text-center">
-        <span class="inline-block h-screen align-middle" aria-hidden="true">&#8203;</span>
-        
-        <div class="inline-block w-full max-w-xl p-8 my-8 text-left align-middle bg-white shadow-2xl rounded-3xl transform transition-all border border-gray-100">
-            <div class="flex justify-between items-center mb-6">
+<!-- Modal Tambah/Edit Neo Brutalism -->
+<div id="paymentModal" class="fixed inset-0 bg-black/60 hidden z-50 overflow-y-auto transition-all duration-200 backdrop-blur-sm">
+    <div class="min-h-screen px-4 text-center flex items-center justify-center">
+        <div class="inline-block w-full max-w-xl p-0 my-8 text-left align-middle bg-white transform transition-all border-[4px] border-black shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]">
+            
+            <div class="bg-black p-8 text-white flex justify-between items-center">
                 <div>
-                    <h3 class="text-2xl font-black text-gray-900 tracking-tighter" id="modalTitle">Tambah Metode</h3>
-                    <p class="text-gray-500 text-sm mt-1">Konfigurasi opsi pembayaran pelanggan.</p>
+                    <h3 class="text-3xl font-black uppercase italic tracking-tighter" id="modalTitle">Konfigurasi Gateway</h3>
+                    <p class="text-gray-400 text-[10px] mt-1 font-mono uppercase tracking-widest">Atur Metode Penerimaan Dana</p>
                 </div>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-2 bg-gray-50 rounded-full transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onclick="closeModal()" class="border-2 border-white w-10 h-10 flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
 
-            <form id="paymentForm" action="{{ route('admin.payment_methods.store') }}" method="POST">
+            <form id="paymentForm" action="{{ route('admin.payment_methods.store') }}" method="POST" class="p-10 bg-white">
                 @csrf
                 <input type="hidden" name="_method" id="formMethod" value="POST">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Metode</label>
-                        <input type="text" name="code" id="pCode" required placeholder="CTH: bank_bca"
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all font-bold text-sm">
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Kode</label>
+                        <input type="text" name="code" id="pCode" required placeholder="bank_bca"
+                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     </div>
                     
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Metode</label>
-                        <input type="text" name="name" id="pName" required placeholder="CTH: BCA Transfer"
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all font-bold text-sm">
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Nama Tampilan</label>
+                        <input type="text" name="name" id="pName" required placeholder="BCA Protocol"
+                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black uppercase italic text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Nomor Rekening / Akun</label>
-                        <input type="text" name="account_number" id="pAccountNumber" placeholder="1234xxx (Opsional)"
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all font-mono text-sm">
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Nomor Rekening</label>
+                        <input type="text" name="account_number" id="pAccountNumber" placeholder="1234xxx"
+                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-mono font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Tipe</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Tipe Pembayaran</label>
                         <select name="type" id="pType" required
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm">
-                            <option value="bank_transfer">Transfer Bank</option>
-                            <option value="ewallet">E-Wallet</option>
-                            <option value="qris">QRIS</option>
-                            <option value="credit_card">Kartu Kredit</option>
-                            <option value="cod">Bayar di Tempat (COD)</option>
+                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black uppercase italic text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            <option value="bank_transfer">BANK_TRANSFER</option>
+                            <option value="ewallet">E_WALLET</option>
+                            <option value="qris">QRIS_SCAN</option>
+                            <option value="credit_card">CREDIT_CARD</option>
+                            <option value="cod">CASH_ON_DELIVERY</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Icon (Emoji)</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Ikon</label>
                         <input type="text" name="icon" id="pIcon" placeholder="🏦" maxlength="10"
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-center">
+                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all text-center text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Biaya Admin (Rp)</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Biaya Tetap (IDR)</label>
                         <input type="number" name="admin_fee" id="pAdminFee" value="0" step="0.01"
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm">
+                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Biaya Admin (%)</label>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Biaya Persentase (%)</label>
                         <input type="number" name="admin_fee_percent" id="pAdminFeePercent" value="0" step="0.01" max="100"
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm">
+                            class="w-full px-5 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Urutan Tampilan</label>
-                        <input type="number" name="sort_order" id="pSortOrder" value="0"
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm">
-                    </div>
-
-                    <div class="flex items-center pt-6">
-                        <label class="flex items-center cursor-pointer">
+                    <div class="flex items-center pt-6 md:col-span-2">
+                        <label class="flex items-center cursor-pointer gap-4 p-4 border-[3px] border-black bg-gray-50 w-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                             <input type="checkbox" name="is_active" id="pIsActive" value="1" checked
-                                class="w-5 h-5 text-indigo-600 border-2 border-gray-200 rounded focus:ring-indigo-500 transition">
-                            <span class="ml-3 text-sm font-bold text-gray-700">Aktifkan Metode Ini</span>
+                                class="w-8 h-8 text-black border-[3px] border-black rounded-none focus:ring-0">
+                            <span class="text-xs font-black uppercase italic tracking-widest">Metode ini AKTIF</span>
                         </label>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Instruksi Pembayaran</label>
-                        <textarea name="instructions" id="pInstructions" rows="3" placeholder="Langkah-langkah pembayaran untuk pelanggan..."
-                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition-all text-sm"></textarea>
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-gray-500">Instruksi Pembayaran</label>
+                        <textarea name="instructions" id="pInstructions" rows="3" placeholder="Input execution steps..."
+                            class="w-full px-6 py-4 bg-white border-[3px] border-black rounded-none focus:bg-gray-50 outline-none transition-all font-black italic uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"></textarea>
                     </div>
                 </div>
 
-                <div class="mt-8 flex gap-3">
-                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 text-sm font-bold text-gray-400 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors uppercase tracking-widest">Batal</button>
-                    <button type="submit" class="flex-1 px-4 py-3 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all uppercase tracking-widest">Simpan Perubahan</button>
+                <div class="mt-12 flex gap-6">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-8 py-5 text-sm font-black border-[3px] border-black hover:bg-black hover:text-white transition-all uppercase italic">Batal</button>
+                    <button type="submit" class="flex-1 px-8 py-5 text-sm font-black bg-black text-white border-[3px] border-black hover:bg-white hover:text-black transition-all uppercase italic shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">Simpan</button>
                 </div>
             </form>
         </div>
@@ -205,23 +196,26 @@
 @push('scripts')
 <script>
     function closeModal() {
-        document.getElementById('paymentModal').classList.add('hidden');
+        const modal = document.getElementById('paymentModal');
+        modal.classList.add('hidden');
         document.getElementById('paymentForm').reset();
         document.getElementById('paymentForm').action = "{{ route('admin.payment_methods.store') }}";
         document.getElementById('formMethod').value = 'POST';
-        document.getElementById('modalTitle').innerText = 'Tambah Metode';
+        document.getElementById('modalTitle').innerText = 'Gateway Config';
     }
 
     function openAddModal() {
-        document.getElementById('paymentModal').classList.remove('hidden');
-        document.getElementById('modalTitle').innerText = 'Tambah Metode';
+        const modal = document.getElementById('paymentModal');
+        modal.classList.remove('hidden');
+        document.getElementById('modalTitle').innerText = 'Register Entry';
         document.getElementById('paymentForm').action = "{{ route('admin.payment_methods.store') }}";
         document.getElementById('formMethod').value = 'POST';
     }
 
     function editPaymentMethod(pm) {
-        document.getElementById('paymentModal').classList.remove('hidden');
-        document.getElementById('modalTitle').innerText = 'Edit Metode';
+        const modal = document.getElementById('paymentModal');
+        modal.classList.remove('hidden');
+        document.getElementById('modalTitle').innerText = 'Modify Protocol';
         document.getElementById('paymentForm').action = `/admin/payment-methods/${pm.id}`;
         document.getElementById('formMethod').value = 'PUT';
         
@@ -232,11 +226,9 @@
         document.getElementById('pIcon').value = pm.icon || '';
         document.getElementById('pAdminFee').value = pm.admin_fee || 0;
         document.getElementById('pAdminFeePercent').value = pm.admin_fee_percent || 0;
-        document.getElementById('pSortOrder').value = pm.sort_order || 0;
         document.getElementById('pInstructions').value = pm.instructions || '';
         document.getElementById('pIsActive').checked = (pm.is_active == 1 || pm.is_active == true);
     }
 </script>
 @endpush
 @endsection
-ion

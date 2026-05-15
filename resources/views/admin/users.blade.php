@@ -2,25 +2,25 @@
 
 @section('content')
     <div class="pt-0 pb-2">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
-                <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-indigo-800 to-gray-600 tracking-tight">Manajemen User</h1>
-                <p class="text-gray-500 mt-1 font-medium">Kontrol penuh atas seluruh pengguna, pembeli, maupun penjual terdaftar.</p>
+                <h1 class="text-4xl font-black tracking-tighter uppercase italic">Database Pengguna</h1>
+                <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest text-black">Manajemen Identitas & Kontrol Akses</p>
             </div>
             
-            <!-- Tabs -->
-            <div class="flex bg-white rounded-xl shadow-sm border border-gray-100 p-1.5 gap-1">
+            <!-- Tabs - Neo Brutalism -->
+            <div class="flex border-[3px] border-black p-1 gap-1 bg-white neo-brutalism">
                 @php 
                     $tabs = [
-                        'all' => 'Semua User', 
+                        'all' => 'Semua Pengguna', 
                         'buyers' => 'Pembeli', 
                         'sellers' => 'Penjual', 
-                        'suspended' => 'Suspended'
+                        'suspended' => 'Diblokir'
                     ]; 
                 @endphp
                 @foreach($tabs as $key => $label)
                     <a href="{{ route('admin.users', ['tab' => $key]) }}"
-                       class="px-4 py-2 text-sm font-bold rounded-lg transition-all duration-300 transform {{ $tab === $key ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-200 scale-105' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100' }}">
+                       class="px-5 py-2 text-xs font-black uppercase transition-all {{ $tab === $key ? 'bg-black text-white' : 'text-black hover:bg-gray-100' }}">
                         {{ $label }}
                     </a>
                 @endforeach
@@ -28,91 +28,101 @@
         </div>
 
         @if(session('success'))
-            <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl relative shadow-sm" role="alert">
-                 <span class="block sm:inline font-medium">{{ session('success') }}</span>
+            <div class="mb-8 border-[3px] border-black bg-white p-6 neo-brutalism flex items-center gap-4">
+                 <div class="w-8 h-8 bg-black text-white flex items-center justify-center font-black">✓</div>
+                 <span class="text-sm font-black uppercase tracking-tight">{{ session('success') }}</span>
             </div>
         @endif
 
         @if(session('error'))
-            <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl relative shadow-sm" role="alert">
-                 <span class="block sm:inline font-medium">{{ session('error') }}</span>
+            <div class="mb-8 border-[3px] border-black bg-black p-6 neo-brutalism flex items-center gap-4 text-white">
+                 <div class="w-8 h-8 bg-white text-black flex items-center justify-center font-black">!</div>
+                 <span class="text-sm font-black uppercase tracking-tight">{{ session('error') }}</span>
             </div>
         @endif
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+        <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden mb-12">
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-gray-600">
-                    <thead class="bg-gray-50/50 text-gray-500 uppercase text-[11px] font-bold tracking-wider">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-100 border-b-[3px] border-black text-black font-black uppercase italic">
                         <tr>
-                            <th class="px-6 py-4">Pengguna</th>
-                            <th class="px-6 py-4">Kontak</th>
-                            <th class="px-6 py-4">Status & Peran</th>
-                            <th class="px-6 py-4">Tanggal Gabung</th>
-                            <th class="px-6 py-4 text-right">Aksi</th>
+                            <th class="px-8 py-6">Identitas</th>
+                            <th class="px-8 py-6">Kontak</th>
+                            <th class="px-8 py-6">Status & Peran</th>
+                            <th class="px-8 py-6">Bergabung</th>
+                            <th class="px-8 py-6 text-right">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="divide-y-2 divide-gray-100 font-bold">
                         @forelse($users as $user)
-                        <tr class="hover:bg-gray-50/80 transition duration-150 {{ $user->is_suspended ? 'bg-red-50/30' : '' }}">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    @if($user->avatar)
-                                        <img src="{{ Storage::url($user->avatar) }}" alt="{{ $user->name }}" class="w-10 h-10 rounded-full object-cover shadow-sm">
-                                    @else
-                                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-600 flex items-center justify-center font-bold shadow-sm">
-                                            {{ substr($user->name, 0, 1) }}
-                                        </div>
-                                    @endif
+                        <tr class="hover:bg-gray-50 transition-all {{ $user->is_suspended ? 'bg-gray-50 opacity-60' : '' }}">
+                            <td class="px-8 py-6">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 border-[3px] border-black overflow-hidden bg-white">
+                                        @if($user->avatar)
+                                            <img src="{{ Storage::url($user->avatar) }}" alt="{{ $user->name }}" class="w-full h-full object-cover grayscale">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center font-black text-xl italic uppercase">
+                                                {{ substr($user->name, 0, 1) }}
+                                            </div>
+                                        @endif
+                                    </div>
                                     <div>
-                                        <div class="font-bold text-gray-900">{{ $user->name }}</div>
+                                        <div class="font-black uppercase text-sm tracking-tight text-black">{{ $user->name }}</div>
                                         @if($user->isSeller())
-                                            <div class="text-xs text-indigo-600 font-medium">🛒 {{ $user->shop_name ?? 'Toko Penjual' }}</div>
+                                            <div class="text-[9px] font-mono text-gray-500 uppercase flex items-center gap-1 mt-1">
+                                                <span class="w-2 h-2 bg-black"></span> Shop: {{ $user->shop_name ?? 'NOT_SET' }}
+                                            </div>
                                         @endif
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-800">{{ $user->email }}</div>
-                                <div class="text-xs text-gray-500">{{ $user->phone }}</div>
+                            <td class="px-8 py-6">
+                                <div class="uppercase tracking-tighter">{{ $user->email }}</div>
+                                <div class="text-[10px] font-mono text-gray-400 mt-1">{{ $user->phone }}</div>
                             </td>
-                            <td class="px-6 py-4">
-                                <span class="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm {{ $user->is_suspended ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-emerald-100 text-emerald-700 border border-emerald-200' }}">
-                                    {{ $user->is_suspended ? 'Disuspend' : 'Aktif' }}
-                                </span>
-                                <span class="ml-1 inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm bg-gray-100 text-gray-600 border border-gray-200">
-                                    {{ $user->isSeller() ? 'Penjual' : 'Pembeli' }}
-                                </span>
+                            <td class="px-8 py-6">
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 border-2 border-black text-[9px] font-black uppercase {{ $user->is_suspended ? 'bg-black text-white' : 'bg-white text-black' }}">
+                                        {{ $user->is_suspended ? 'TERMINATED' : 'ACTIVE' }}
+                                    </span>
+                                    <span class="px-3 py-1 border-2 border-black bg-gray-100 text-[9px] font-black uppercase">
+                                        {{ $user->isSeller() ? 'SELLER' : 'BUYER' }}
+                                    </span>
+                                </div>
                             </td>
-                            <td class="px-6 py-4 font-medium text-gray-500 whitespace-nowrap">
-                                {{ $user->created_at->format('d M Y') }}
+                            <td class="px-8 py-6 font-mono text-[10px] text-gray-400 uppercase">
+                                {{ $user->created_at->format('d/m/Y') }}
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <form action="{{ route('admin.users.suspend', $user->id) }}" method="POST" class="inline-block">
-                                    @csrf
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-3 py-1.5 shadow-sm text-xs font-bold rounded-lg transition-colors {{ $user->is_suspended ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200' }}"
-                                            onclick="return confirm('Yakinkah Anda ingin {{ $user->is_suspended ? 'mengaktifkan kembali' : 'menangguhkan (suspend)' }} {{ $user->name }}?')">
-                                        {{ $user->is_suspended ? 'Unsuspend' : 'Suspend' }}
-                                    </button>
-                                </form>
+                            <td class="px-8 py-6 text-right">
+                                <div class="flex justify-end gap-3">
+                                    <form action="{{ route('admin.users.suspend', $user->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" 
+                                                class="px-4 py-2 border-2 border-black text-[10px] font-black uppercase transition-all {{ $user->is_suspended ? 'bg-white text-black hover:bg-gray-100' : 'bg-white text-black hover:bg-black hover:text-white' }}"
+                                                onclick="return confirm('Execute protocol: {{ $user->is_suspended ? 'ACTIVATE' : 'SUSPEND' }} user {{ $user->name }}?')">
+                                            {{ $user->is_suspended ? 'Reactivate' : 'Suspend' }}
+                                        </button>
+                                    </form>
 
-                                <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" class="inline-block ml-2">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-3 py-1.5 shadow-sm text-xs font-bold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors"
-                                            onclick="return confirm('PERINGATAN KRITIKAL: Anda yakin ingin MENGHAPUS PERMANEN user {{ $user->name }}? Seluruh data yang terkait dengannya akan hilang (cascade).')">
-                                        Hapus
-                                    </button>
-                                </form>
+                                    <form action="{{ route('admin.users.delete', $user->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="px-4 py-2 bg-black text-white border-2 border-black text-[10px] font-black uppercase hover:bg-white hover:text-black transition-all"
+                                                onclick="return confirm('PERINGATAN KRITIS: Hapus pengguna {{ $user->name }} dari sistem? Tindakan ini tidak bisa dibatalkan.')">
+                                            Hapus
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            <td colspan="5" class="px-8 py-24 text-center">
                                 <div class="flex flex-col items-center">
-                                    <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                    <span class="font-medium text-gray-500">Tidak ada user ditemukan pada tab ini.</span>
+                                    <div class="w-16 h-16 border-[3px] border-black flex items-center justify-center font-black text-2xl mb-4 italic">?</div>
+                                    <span class="text-xs font-black uppercase tracking-widest text-gray-400 italic">Tidak Ada Data Pengguna</span>
                                 </div>
                             </td>
                         </tr>
@@ -122,7 +132,7 @@
             </div>
             
             @if($users->hasPages())
-                <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+                <div class="px-8 py-6 border-t-[3px] border-black bg-gray-50">
                     {{ $users->links() }}
                 </div>
             @endif

@@ -22,9 +22,13 @@ class ProductControllerApi extends Controller
         // Apply general filters
         $query->filter($request->only('search', 'category'));
 
-        // Apply Haversine Distance Sorting if lat/lng are provided
-        if ($request->has('latitude') && $request->has('longitude')) {
-            $query->nearby($request->latitude, $request->longitude)
+        // Apply Haversine Distance Sorting if lat/lng are provided and not empty
+        if ($request->filled('latitude') && $request->filled('longitude')) {
+            $radius = $request->input('radius', null);
+            // Convert radius to integer; treat 100 or null as "no filter"
+            $radiusKm = ($radius !== null && (int)$radius < 100) ? (int)$radius : null;
+
+            $query->nearby($request->latitude, $request->longitude, $radiusKm)
                   ->orderByRating('desc');
         } else {
             // Priority: Rating, then latest
@@ -54,7 +58,7 @@ class ProductControllerApi extends Controller
 
             // Format distance if it exists in raw query
             if (isset($product->distance)) {
-                $data['distance_km'] = round($product->distance, 2);
+                $data['distance'] = round($product->distance, 2);
             }
 
             $userId = auth('sanctum')->id();

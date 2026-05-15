@@ -8,22 +8,40 @@ class Voucher extends Model
 {
     protected $fillable = [
         'code',
+        'name',
         'discount_type',
         'discount_amount',
         'max_discount_amount',
         'usage_limit',
         'usage_count',
+        'quota_total',
         'min_purchase',
+        'start_date',
+        'end_date',
         'target_user_id',
         'category_id',
         'is_active',
-        'terms'
+        'terms',
+        'description'
+    ];
+
+    protected $casts = [
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+        'is_active' => 'boolean'
     ];
 
     public function isValidFor($amount, $userId = null, $itemCategoryIds = [])
     {
         if (!$this->is_active)
             return false;
+        
+        $now = now();
+        if ($this->start_date && $now->lt($this->start_date))
+            return false;
+        if ($this->end_date && $now->gt($this->end_date))
+            return false;
+
         if ($this->usage_count >= $this->usage_limit)
             return false;
         if ($amount < $this->min_purchase)
@@ -63,5 +81,10 @@ class Voucher extends Model
     public function targetUser()
     {
         return $this->belongsTo(User::class, 'target_user_id');
+    }
+
+    public function userVouchers()
+    {
+        return $this->hasMany(UserVoucher::class);
     }
 }

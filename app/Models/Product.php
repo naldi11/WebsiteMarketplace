@@ -110,7 +110,7 @@ class Product extends Model
     /**
      * Scope a query to sort products by distance from a given latitude and longitude.
      */
-    public function scopeNearby($query, $latitude, $longitude)
+    public function scopeNearby($query, $latitude, $longitude, $radius = null)
     {
         // Haversine formula (distance in km)
         $haversine = "(6371 * acos(cos(radians($latitude)) 
@@ -119,10 +119,17 @@ class Product extends Model
                      + sin(radians($latitude)) 
                      * sin(radians(latitude))))";
 
-        return $query->selectRaw("products.*, {$haversine} AS distance")
+        $query->selectRaw("products.*, {$haversine} AS distance")
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->orderBy('distance', 'asc');
+
+        // Apply radius filter if specified and < 100 (100 = "all distances")
+        if ($radius !== null && $radius < 100) {
+            $query->havingRaw("{$haversine} <= ?", [$radius]);
+        }
+
+        return $query;
     }
 
     public function user()

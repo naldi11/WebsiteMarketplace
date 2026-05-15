@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\ProductControllerApi;
 use App\Http\Controllers\Api\CategoryControllerApi;
 use App\Http\Controllers\Api\CartControllerApi;
 
+use App\Http\Controllers\Api\TransactionControllerApi;
+
 // Public Routes
 Route::post('/register', [AuthControllerApi::class, 'register']);
 Route::post('/login', [AuthControllerApi::class, 'login']);
@@ -48,13 +50,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cart/{cart}', [CartControllerApi::class, 'destroy']);
 
     // Transactions
-    Route::get('/transactions', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'index']);
-    Route::get('/transactions/{id}', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'show']);
-    Route::post('/transactions/preview', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'preview']);
-    Route::post('/transactions/confirm', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'confirm']);
-    Route::post('/transactions/direct', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'store']); // Legacy
-    Route::post('/transactions/cart', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'storeCart']); // Legacy
-    Route::post('/transactions/{transaction}/proof', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'uploadProof']);
+    Route::get('/transactions', [TransactionControllerApi::class, 'index']);
+    Route::get('/transactions/{id}', [TransactionControllerApi::class, 'show']);
+    Route::post('/transactions/preview', [TransactionControllerApi::class, 'preview']);
+    Route::post('/transactions/confirm', [TransactionControllerApi::class, 'confirm']);
+    Route::get('/transactions/check-status/{id}', [TransactionControllerApi::class, 'checkPaymentStatus']);
+    Route::post('/transactions/pay-wallet/{id}', [TransactionControllerApi::class, 'payWithWallet']);
+    Route::post('/transactions/{transaction}/proof', [TransactionControllerApi::class, 'uploadProof']);
+    
+    // Legacy / Aliases
+    Route::post('/transactions/direct', [TransactionControllerApi::class, 'store']);
+    Route::post('/transactions/cart', [TransactionControllerApi::class, 'storeCart']);
 
     // Profile
     Route::get('/profile', [\App\Http\Controllers\Api\ProfileControllerApi::class, 'show']);
@@ -77,6 +83,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transactions/mark-seen', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'markAsSeen']);
     Route::delete('/transactions/{id}', [\App\Http\Controllers\Api\TransactionControllerApi::class, 'destroy']);
 
+    // ===== Dispute / Laporan Masalah =====
+    Route::post('/disputes/{transactionId}', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'openDispute']);
+    Route::get('/disputes/{transactionId}', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'show']);
+    Route::post('/disputes/{id}/buyer-ship-back', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'buyerShipBack']);
+    Route::post('/disputes/{id}/seller-confirm-return', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'sellerConfirmReturn']);
+    // Admin dispute
+    Route::get('/admin/disputes', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'adminIndex']);
+    Route::post('/admin/disputes/{id}/resolve', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'adminResolve']);
+
+
     // Seller Dashboard
     Route::get('/seller/transactions', [\App\Http\Controllers\Api\SellerControllerApi::class, 'transactions']);
     Route::get('/seller/transactions/{id}', [\App\Http\Controllers\Api\SellerControllerApi::class, 'show']);
@@ -94,5 +110,30 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Vouchers
     Route::get('/vouchers', [\App\Http\Controllers\Api\VoucherControllerApi::class, 'index']);
+    Route::get('/vouchers/public', [\App\Http\Controllers\Api\VoucherControllerApi::class, 'publicIndex']);
     Route::post('/vouchers/check', [\App\Http\Controllers\Api\VoucherControllerApi::class, 'check']);
+    Route::post('/vouchers/{id}/claim', [\App\Http\Controllers\Api\VoucherControllerApi::class, 'claim']);
+
+    // MeyPay Wallet
+    Route::prefix('wallet')->group(function () {
+        Route::get('/info', [\App\Http\Controllers\Api\WalletControllerApi::class, 'info']);
+        Route::get('/transactions', [\App\Http\Controllers\Api\WalletControllerApi::class, 'transactions']);
+        Route::post('/topup', [\App\Http\Controllers\Api\WalletControllerApi::class, 'topup']);
+        Route::post('/verify-pin', [\App\Http\Controllers\Api\WalletControllerApi::class, 'verifyPin']);
+        Route::post('/verify-payment', [\App\Http\Controllers\Api\WalletControllerApi::class, 'verifyPayment']);
+    });
+
+    // Disputes (Laporan Masalah)
+    Route::post('/disputes/{transactionId}', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'openDispute']);
+    Route::get('/disputes/{transactionId}', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'show']);
+    Route::post('/disputes/{id}/buyer-ship-back', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'buyerShipBack']);
+    Route::post('/disputes/{id}/seller-confirm-return', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'sellerConfirmReturn']);
+
+    // Chat System
+    Route::prefix('chat')->group(function () {
+        Route::get('/conversations', [\App\Http\Controllers\Api\ChatControllerApi::class, 'conversations']);
+        Route::get('/messages/{otherUserId}', [\App\Http\Controllers\Api\ChatControllerApi::class, 'messages']);
+        Route::post('/send', [\App\Http\Controllers\Api\ChatControllerApi::class, 'send']);
+        Route::get('/poll', [\App\Http\Controllers\Api\ChatControllerApi::class, 'poll']);
+    });
 });

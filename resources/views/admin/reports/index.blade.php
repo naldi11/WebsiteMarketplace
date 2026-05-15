@@ -1,99 +1,97 @@
 @extends('layouts.admin')
 
-@section('title', 'Laporan Masalah Transaksi')
+@section('title', 'Conflict_Report Matrix')
 
 @section('content')
-<div class="px-4 sm:px-6 lg:px-8 py-8">
-    <div class="sm:flex sm:items-center">
-        <div class="sm:flex-auto">
-            <h1 class="text-2xl font-bold text-gray-900">Laporan Masalah</h1>
-            <p class="mt-2 text-sm text-gray-700">Daftar keluhan dari pembeli dan penjual terkait transaksi yang bermasalah.</p>
+<div class="pt-0 pb-8">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+        <div>
+            <h1 class="text-4xl font-black tracking-tighter uppercase italic text-black">Conflict_Report Matrix</h1>
+            <p class="text-gray-500 mt-1 font-mono text-xs uppercase tracking-widest text-black">Transaction Dispute & Issue Logging System</p>
         </div>
     </div>
 
-    {{-- Tabs --}}
-    <div class="mt-8 border-b border-gray-200">
-        <nav class="-mb-px flex space-x-8">
+    {{-- Tabs - Neo Brutalism --}}
+    <div class="mb-12">
+        <nav class="flex flex-wrap gap-4">
             <a href="{{ route('admin.reports', ['status' => 'pending']) }}" 
-                class="{{ $status === 'pending' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Pending <span class="ml-2 bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full text-xs">{{ $counts['pending'] }}</span>
+                class="px-6 py-3 border-[3px] border-black text-xs font-black uppercase italic tracking-widest transition-all {{ $status === 'pending' ? 'bg-black text-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]' : 'bg-white text-black hover:bg-gray-50' }}">
+                Pending_Queue [{{ $counts['pending'] }}]
             </a>
             <a href="{{ route('admin.reports', ['status' => 'resolved']) }}" 
-                class="{{ $status === 'resolved' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Selesai <span class="ml-2 bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">{{ $counts['resolved'] }}</span>
+                class="px-6 py-3 border-[3px] border-black text-xs font-black uppercase italic tracking-widest transition-all {{ $status === 'resolved' ? 'bg-black text-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]' : 'bg-white text-black hover:bg-gray-50' }}">
+                Resolved_Nodes [{{ $counts['resolved'] }}]
             </a>
             <a href="{{ route('admin.reports', ['status' => 'dismissed']) }}" 
-                class="{{ $status === 'dismissed' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Ditolak <span class="ml-2 bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">{{ $counts['dismissed'] }}</span>
+                class="px-6 py-3 border-[3px] border-black text-xs font-black uppercase italic tracking-widest transition-all {{ $status === 'dismissed' ? 'bg-black text-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]' : 'bg-white text-black hover:bg-gray-50' }}">
+                Dismissed_Log [{{ $counts['dismissed'] }}]
             </a>
             <a href="{{ route('admin.reports', ['status' => 'all']) }}" 
-                class="{{ $status === 'all' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Semua
+                class="px-6 py-3 border-[3px] border-black text-xs font-black uppercase italic tracking-widest transition-all {{ $status === 'all' ? 'bg-black text-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]' : 'bg-white text-black hover:bg-gray-50' }}">
+                Total_Matrix
             </a>
         </nav>
     </div>
 
-    <div class="mt-8 flex flex-col">
-        <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-300">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Waktu</th>
-                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pelapor</th>
-                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Transaksi</th>
-                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Masalah</th>
-                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                                <th class="relative py-3.5 pl-3 pr-4 sm:pr-6">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
-                            @forelse($reports as $report)
-                            <tr>
-                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 sm:pl-6">
-                                    {{ $report->created_at->format('d/m/Y H:i') }}
-                                </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                                    <div class="font-medium">{{ $report->user->name }}</div>
-                                    <div class="text-gray-500 text-xs text-uppercase">{{ str_replace('_', ' ', $report->type) }}</div>
-                                </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-pink-600 font-bold">
-                                    <a href="{{ route('admin.transactions.show', $report->transaction_id) }}">#{{ $report->transaction_id }}</a>
-                                </td>
-                                <td class="px-3 py-4 text-sm text-gray-500">
-                                    <div class="font-bold text-gray-900">{{ $report->reason }}</div>
-                                    <div class="truncate max-w-xs">{{ $report->description }}</div>
-                                </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                    @if($report->status === 'pending')
-                                        <span class="inline-flex rounded-full bg-yellow-100 px-2 text-xs font-semibold leading-5 text-yellow-800">Pending</span>
-                                    @elseif($report->status === 'resolved')
-                                        <span class="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">Selesai</span>
-                                    @else
-                                        <span class="inline-flex rounded-full bg-gray-100 px-2 text-xs font-semibold leading-5 text-gray-800">Ditolak</span>
-                                    @endif
-                                </td>
-                                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                    <a href="{{ route('admin.reports.show', $report) }}" class="text-pink-600 hover:text-pink-900">Detail</a>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="6" class="py-12 text-center">
-                                    <div class="text-gray-400 text-3xl mb-2">🍃</div>
-                                    <div class="text-gray-500 font-medium">Tidak ada laporan yang ditemukan.</div>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-4">
-                    {{ $reports->links() }}
-                </div>
-            </div>
+    <!-- Report Matrix - Neo Brutalism -->
+    <div class="bg-white border-[3px] border-black neo-brutalism overflow-hidden mb-12">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-gray-100 border-b-[3px] border-black text-black font-black uppercase italic">
+                    <tr>
+                        <th class="px-8 py-6">Timestamp_Log</th>
+                        <th class="px-8 py-6">Reporter_Node</th>
+                        <th class="px-8 py-6">Transaction_ID</th>
+                        <th class="px-8 py-6">Incident_Vector</th>
+                        <th class="px-8 py-6">Conflict_Status</th>
+                        <th class="px-8 py-6 text-right">Protocol_Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y-2 divide-gray-100 font-bold">
+                    @forelse($reports as $report)
+                    <tr class="hover:bg-gray-50 transition-all">
+                        <td class="px-8 py-6 whitespace-nowrap font-mono text-[10px] text-gray-500">
+                            {{ $report->created_at->format('Y-m-d_H:i:s') }}
+                        </td>
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <div class="font-black text-black uppercase italic tracking-tighter">{{ $report->user->name }}</div>
+                            <div class="text-[9px] text-gray-400 font-mono tracking-widest uppercase mt-1">{{ str_replace('_', '.', $report->type) }}</div>
+                        </td>
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <a href="{{ route('admin.transactions.show', $report->transaction_id) }}" class="px-3 py-1 border-2 border-black text-[10px] font-black bg-black text-white hover:bg-white hover:text-black transition-all">
+                                TXN_{{ $report->transaction_id }}
+                            </a>
+                        </td>
+                        <td class="px-8 py-6">
+                            <div class="font-black text-black uppercase italic tracking-tighter text-sm leading-none">{{ $report->reason }}</div>
+                            <div class="text-[10px] text-gray-400 truncate max-w-[200px] mt-1 font-mono uppercase">{{ $report->description }}</div>
+                        </td>
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <span class="px-3 py-1 border-2 border-black text-[9px] font-black uppercase tracking-widest {{ $report->status === 'pending' ? 'bg-white text-black' : ($report->status === 'resolved' ? 'bg-black text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-100 text-gray-400') }}">
+                                {{ strtoupper($report->status) }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6 text-right whitespace-nowrap">
+                            <a href="{{ route('admin.reports.show', $report) }}" class="px-4 py-2 bg-white text-black border-2 border-black text-[10px] font-black uppercase italic hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Inspect</a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-8 py-24 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-16 h-16 border-[3px] border-black flex items-center justify-center font-black text-2xl mb-4 italic">!</div>
+                                <p class="text-xs font-black uppercase tracking-widest text-gray-400 italic">No Conflict Records Detected</p>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+    </div>
+    
+    <div class="mt-8 font-black">
+        {{ $reports->links() }}
     </div>
 </div>
 @endsection

@@ -53,6 +53,9 @@ class AdminController extends Controller
             'platform_profit' => (clone $transactionQuery)->where('status', 'completed')->sum('service_fee') + (clone $transactionQuery)->where('status', 'completed')->sum('admin_fee'),
             'total_users' => (clone $userQuery)->count(), 
             'escrow_funds' => \App\Models\SellerBalance::sum('available_balance') + \App\Models\SellerBalance::sum('pending_balance'),
+            'total_wallet_balance' => \App\Models\Wallet::sum('balance'),
+            'total_wallet_pending' => \App\Models\Wallet::sum('pending_balance'),
+            'wallet_tx_count' => \App\Models\WalletTransaction::count(),
         ];
 
         // Composition of Transaction Statuses
@@ -480,38 +483,53 @@ class AdminController extends Controller
     {
         $this->checkAdmin();
         $request->validate([
+            'name' => 'required|string|max:255',
             'code' => 'required|unique:vouchers,code',
             'discount_type' => 'required|in:fixed,percent',
             'discount_amount' => 'required|numeric',
             'max_discount_amount' => 'nullable|numeric',
             'usage_limit' => 'required|integer',
+            'quota_total' => 'required|integer',
             'min_purchase' => 'nullable|numeric',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'description' => 'nullable|string',
             'target_user_id' => 'nullable|exists:users,id',
             'category_id' => 'nullable|exists:categories,id',
             'terms' => 'nullable|string',
         ]);
 
-        \App\Models\Voucher::create($request->all());
-        return back()->with('success', 'Voucher dibuat!');
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active') || $request->is_active == 1;
+
+        \App\Models\Voucher::create($data);
+        return back()->with('success', 'Voucher berhasil dibuat!');
     }
 
     public function updateVoucher(Request $request, \App\Models\Voucher $voucher)
     {
         $this->checkAdmin();
         $request->validate([
+            'name' => 'required|string|max:255',
             'code' => 'required|unique:vouchers,code,' . $voucher->id,
             'discount_type' => 'required|in:fixed,percent',
             'discount_amount' => 'required|numeric',
             'max_discount_amount' => 'nullable|numeric',
             'usage_limit' => 'required|integer',
+            'quota_total' => 'required|integer',
             'min_purchase' => 'nullable|numeric',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'description' => 'nullable|string',
             'target_user_id' => 'nullable|exists:users,id',
             'category_id' => 'nullable|exists:categories,id',
-            'is_active' => 'required|boolean',
             'terms' => 'nullable|string',
         ]);
 
-        $voucher->update($request->all());
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active') || $request->is_active == 1;
+
+        $voucher->update($data);
         return back()->with('success', 'Voucher berhasil diperbarui!');
     }
 
@@ -786,6 +804,45 @@ class AdminController extends Controller
         ]);
 
         return redirect()->route('admin.reports')->with('success', 'Laporan berhasil diperbarui.');
+    }
+
+
+
+    public function walletLogs(Request $request)
+    {
+        $this->checkAdmin();
+        $query = \App\Models\WalletTransaction::with(['wallet.user'])->latest();
+        
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('wallet.user', function($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                  ->orWhere('email', 'like', "%$search%");
+            })->orWhere('description', 'like', "%$search%");
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        $logs = $query->paginate(20)->withQueryString();
+        
+        return view('admin.wallet_logs', compact('logs'));
+    }
+
+    public function resolveDispute(Request $request, \App\Models\Report $report)
+    {
+        $this->checkAdmin();
+        $request->validate([
+            'resolution' => 'required|string',
+        ]);
+
+        $report->update([
+            'status' => 'resolved',
+            'admin_note' => $request->resolution,
+        ]);
+
+        return back()->with('success', 'Perselisihan berhasil diselesaikan.');
     }
 
     public function printInvoice(\App\Models\Transaction $transaction)
