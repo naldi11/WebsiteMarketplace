@@ -191,8 +191,7 @@ class DisputeControllerApi extends Controller
                 // Kirim notifikasi ke chat
                 $this->sendSystemMessageToChat(
                     $dispute->transaction,
-                    "✅ Admin telah memutuskan kasus ini berpihak pada PEMBELI. " .
-                    "Silakan kembalikan barang ke penjual dan isi nomor resi pengiriman balik."
+                    "[KEPUTUSAN ADMIN] Pembeli dinyatakan menang. Silakan kembalikan barang ke penjual dan input nomor resi di aplikasi."
                 );
             }
 
@@ -249,10 +248,7 @@ class DisputeControllerApi extends Controller
 
         $this->sendSystemMessageToChat(
             $dispute->transaction,
-            "📦 Pembeli telah mengirim barang kembali.\n" .
-            "Kurir: {$request->return_courier}\n" .
-            "No. Resi: {$request->return_tracking_number}\n\n" .
-            "Penjual harap konfirmasi penerimaan barang."
+            "[INFO] Pembeli mengirim barang kembali via {$request->return_courier}. Resi: {$request->return_tracking_number}. Penjual harap konfirmasi penerimaan."
         );
 
         return response()->json(['status' => 'success', 'message' => 'Resi pengiriman balik berhasil disimpan.']);
@@ -414,10 +410,7 @@ class DisputeControllerApi extends Controller
     {
         // Cari pesan antara buyer dan seller yang sudah ada
         // Chat model menggunakan user_id dan other_user_id
-        $msg = "⚠️ LAPORAN MASALAH DIBUKA\n\n" .
-               "Pembeli melaporkan masalah untuk pesanan #{$transaction->id}.\n" .
-               "Alasan: {$dispute->reason}\n\n" .
-               "Admin akan segera meninjau kasus ini. Mohon tidak melakukan tindakan apapun sebelum keputusan admin.";
+        $msg = "[LAPORAN MASALAH] Pembeli membuka laporan untuk pesanan #{$transaction->id}. Alasan: {$dispute->reason}. Admin akan segera meninjau.";
 
         Message::create([
             'sender_id'    => $buyer->id,

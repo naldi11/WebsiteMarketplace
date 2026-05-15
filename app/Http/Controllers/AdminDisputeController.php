@@ -67,30 +67,7 @@ class AdminDisputeController extends Controller
             'logs' => fn($q) => $q->orderBy('created_at', 'asc'),
         ])->findOrFail($id);
 
-        // Get conversation messages — show admin→buyer only to avoid duplicate display
-        $messages = \App\Models\Message::where(function ($q) use ($dispute) {
-                // buyer↔seller messages (both directions)
-                $q->where(function ($inner) use ($dispute) {
-                    $inner->where('sender_id', $dispute->buyer_id)
-                          ->where('receiver_id', $dispute->seller_id);
-                })->orWhere(function ($inner) use ($dispute) {
-                    $inner->where('sender_id', $dispute->seller_id)
-                          ->where('receiver_id', $dispute->buyer_id);
-                })
-                // admin→buyer only (to avoid showing duplicate admin→seller messages)
-                ->orWhere(function ($inner) use ($dispute) {
-                    $inner->whereNotIn('sender_id', [$dispute->buyer_id, $dispute->seller_id])
-                          ->where('receiver_id', $dispute->buyer_id);
-                })
-                // buyer or seller → admin
-                ->orWhere(function ($inner) use ($dispute) {
-                    $inner->whereIn('sender_id', [$dispute->buyer_id, $dispute->seller_id])
-                          ->whereNotIn('receiver_id', [$dispute->buyer_id, $dispute->seller_id]);
-                });
-            })
-            ->with(['sender'])
-            ->orderBy('created_at', 'asc')
-            ->get();
+        $messages = $this->getDisputeMessages($dispute);
 
         return view('admin.disputes.show', compact('dispute', 'messages'));
     }
@@ -148,24 +125,16 @@ class AdminDisputeController extends Controller
                     'Dana dilepas ke penjual (dipotong 10% platform fee). Pembeli tidak dapat memberi rating.');
 
                 $this->sendAdminSystemMessage($dispute,
-                    "⚖️ KEPUTUSAN ADMIN\n\n" .
-                    "Setelah ditinjau, Admin memutuskan kasus ini berpihak kepada PENJUAL.\n\n" .
-                    "📝 Catatan Admin: {$notes}\n\n" .
-                    "✅ Dana telah diteruskan ke penjual. Transaksi dinyatakan selesai.\n" .
-                    "❌ Pembeli tidak dapat memberikan rating pada transaksi ini."
+                    "[KEPUTUSAN ADMIN] Laporan diselesaikan. Penjual dinyatakan menang.\n" .
+                    "Catatan: {$notes}\n" .
+                    "Dana telah diteruskan ke penjual."
                 );
             } else {
                 // ── PEMBELI MENANG ────────────────────────────────
                 $this->sendAdminSystemMessage($dispute,
-                    "⚖️ KEPUTUSAN ADMIN\n\n" .
-                    "Setelah ditinjau, Admin memutuskan kasus ini berpihak kepada PEMBELI.\n\n" .
-                    "📝 Catatan Admin: {$notes}\n\n" .
-                    "📦 TAHAPAN PENGEMBALIAN BARANG:\n" .
-                    "① Pembeli wajib mengirimkan kembali barang ke penjual\n" .
-                    "② Input nomor resi pengiriman balik di aplikasi\n" .
-                    "③ Penjual konfirmasi penerimaan barang\n" .
-                    "④ Refund OTOMATIS masuk ke MeyPay Wallet pembeli\n\n" .
-                    "⏳ Harap selesaikan pengembalian barang dalam 3 hari kerja."
+                    "[KEPUTUSAN ADMIN] Laporan diselesaikan. Pembeli dinyatakan menang.\n" .
+                    "Catatan: {$notes}\n" .
+                    "Silakan kirim kembali barang ke penjual dan input nomor resi di aplikasi."
                 );
             }
 
@@ -204,9 +173,7 @@ class AdminDisputeController extends Controller
                 'Admin memaksa konfirmasi penjual telah menerima kembali barang');
 
             $this->sendAdminSystemMessage($dispute,
-                "✅ ADMIN KONFIRMASI PENERIMAAN BARANG\n\n" .
-                "Admin telah mengkonfirmasi bahwa penjual telah menerima kembali barang.\n" .
-                "🔄 Memproses refund otomatis ke pembeli..."
+                "[INFO] Admin mengkonfirmasi penjual telah menerima barang. Refund sedang diproses."
             );
 
             // Auto trigger refund
@@ -272,7 +239,7 @@ class AdminDisputeController extends Controller
         $dispute->addLog('admin', $admin->id, 'admin_reviewing', 'Admin mulai meninjau kasus ini');
 
         $this->sendAdminSystemMessage($dispute,
-            "🔍 PROSES PENINJAUAN\n\nAdmin sedang meninjau kasus Anda. Harap menunggu keputusan resmi.\nEstimasi: 1x24 jam kerja."
+            "[INFO] Laporan sedang ditinjau oleh admin. Harap menunggu keputusan."
         );
 
         return back()->with('success', 'Status dispute diperbarui menjadi: Sedang Ditinjau');
@@ -285,22 +252,9 @@ class AdminDisputeController extends Controller
     {
         $this->checkAdmin();
 
-        $dispute = Dispute::with(['buyer', 'seller', 'transaction'])->findOrFail($id);
+        $dispute = Dispute::with(['buyer', 'seller', 'transaction.buyer', 'transaction.seller'])->findOrFail($id);
 
-        // Ambil semua pesan antara buyer dan seller (dua arah)
-        $messages = Message::where(function ($q) use ($dispute) {
-            $q->where('sender_id', $dispute->buyer_id)
-              ->where('receiver_id', $dispute->seller_id);
-        })->orWhere(function ($q) use ($dispute) {
-            $q->where('sender_id', $dispute->seller_id)
-              ->where('receiver_id', $dispute->buyer_id);
-        })->orWhere(function ($q) use ($dispute) {
-            // Pesan sistem/admin yang dikirim ke buyer atau seller
-            $q->whereIn('receiver_id', [$dispute->buyer_id, $dispute->seller_id])
-              ->whereNotIn('sender_id', [$dispute->buyer_id, $dispute->seller_id]);
-        })->with('sender')
-          ->orderBy('created_at', 'asc')
-          ->get();
+        $messages = $this->getDisputeMessages($dispute);
 
         return view('admin.disputes.chat', compact('dispute', 'messages'));
     }
@@ -429,31 +383,50 @@ class AdminDisputeController extends Controller
         );
 
         $this->sendAdminSystemMessage($dispute,
-            "✅ REFUND BERHASIL!\n\n" .
-            "Rp " . number_format($amount, 0, ',', '.') . " telah dikembalikan ke MeyPay Wallet Anda.\n\n" .
-            "Silakan cek saldo MeyPay Anda. Terima kasih atas kesabaran Anda."
+            "[REFUND] Rp " . number_format($amount, 0, ',', '.') . " telah dikembalikan ke MeyPay Wallet pembeli."
         );
     }
 
     /**
-     * Kirim pesan sistem dari sisi buyer ke seller (system message)
-     * Pesan ini muncul di chat buyer-seller sebagai notifikasi admin
+     * Query pesan percakapan untuk sebuah dispute, tanpa duplikat.
+     * Menampilkan: buyer↔seller + admin→buyer saja (bukan admin→seller).
+     */
+    private function getDisputeMessages(Dispute $dispute)
+    {
+        return Message::where(function ($q) use ($dispute) {
+                // buyer → seller
+                $q->where(function ($inner) use ($dispute) {
+                    $inner->where('sender_id', $dispute->buyer_id)
+                          ->where('receiver_id', $dispute->seller_id);
+                })
+                // seller → buyer (termasuk pesan sistem yang dikirim arah ini)
+                ->orWhere(function ($inner) use ($dispute) {
+                    $inner->where('sender_id', $dispute->seller_id)
+                          ->where('receiver_id', $dispute->buyer_id);
+                })
+                // admin → buyer saja (menghindari duplikat dari admin→seller)
+                ->orWhere(function ($inner) use ($dispute) {
+                    $inner->whereNotIn('sender_id', [$dispute->buyer_id, $dispute->seller_id])
+                          ->where('receiver_id', $dispute->buyer_id);
+                });
+            })
+            ->with(['sender'])
+            ->orderBy('created_at', 'asc')
+            ->get();
+    }
+
+    /**
+     * Kirim pesan sistem ke buyer saja (seller mendapat info melalui halaman dispute).
+     * Satu pesan = tidak ada duplikat di tampilan admin.
      */
     private function sendAdminSystemMessage(Dispute $dispute, string $message)
     {
         try {
             $transaction = $dispute->transaction;
-            // Kirim ke buyer
+            // Hanya satu pesan: sistem → buyer
             Message::create([
                 'sender_id'   => $transaction->seller_id,
                 'receiver_id' => $transaction->buyer_id,
-                'message'     => $message,
-                'is_read'     => 0,
-            ]);
-            // Kirim ke seller
-            Message::create([
-                'sender_id'   => $transaction->buyer_id,
-                'receiver_id' => $transaction->seller_id,
                 'message'     => $message,
                 'is_read'     => 0,
             ]);
