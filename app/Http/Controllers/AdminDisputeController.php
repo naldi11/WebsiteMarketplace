@@ -264,25 +264,17 @@ class AdminDisputeController extends Controller
         $request->validate(['message' => 'required|string|max:2000']);
         $dispute = Dispute::with('transaction')->findOrFail($id);
 
-        $text = $request->message;
+        // Kirim dengan sender=seller agar masuk ke room chat buyer-seller yang ada,
+        // bukan membuat conversation baru dengan "Super Admin" di mobile.
+        // Prefix [Admin] agar pembeli & penjual tahu ini pesan intervensi admin.
+        $text = '[Admin] ' . $request->message;
 
-        // Send to buyer
         Message::create([
-            'sender_id'   => $admin->id,
+            'sender_id'   => $dispute->seller_id,
             'receiver_id' => $dispute->buyer_id,
             'message'     => $text,
             'is_read'     => 0,
         ]);
-
-        // Send to seller too so mobile seller chat also receives it
-        if ($dispute->seller_id !== $dispute->buyer_id) {
-            Message::create([
-                'sender_id'   => $admin->id,
-                'receiver_id' => $dispute->seller_id,
-                'message'     => $text,
-                'is_read'     => 0,
-            ]);
-        }
 
         $dispute->addLog('admin', $admin->id, 'admin_sent_chat',
             'Admin mengirim pesan: ' . substr($request->message, 0, 100)
