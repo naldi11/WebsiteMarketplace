@@ -7,38 +7,42 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Add 'disputed' and 'refunded' to the status enum
-        DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM(
-            'waiting_payment',
-            'pending',
-            'paid_verified',
-            'processing',
-            'packed',
-            'ready_to_ship',
-            'shipped',
-            'received',
-            'completed',
-            'cancelled',
-            'payment_rejected',
-            'disputed',
-            'refunded'
-        ) DEFAULT 'waiting_payment'");
+        if (DB::getDriverName() !== 'sqlite') {
+            // Add 'disputed' and 'disputed_refunded' to the status enum
+            DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM(
+                'waiting_payment',
+                'pending',
+                'paid_verified',
+                'processing',
+                'packed',
+                'ready_to_ship',
+                'shipped',
+                'received',
+                'completed',
+                'cancelled',
+                'payment_rejected',
+                'disputed',
+                'disputed_refunded'
+            ) DEFAULT 'waiting_payment'");
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM(
-            'waiting_payment',
-            'pending',
-            'paid_verified',
-            'processing',
-            'packed',
-            'ready_to_ship',
-            'shipped',
-            'received',
-            'completed',
-            'cancelled',
-            'payment_rejected'
-        ) DEFAULT 'waiting_payment'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM(
+                'waiting_payment',
+                'pending',
+                'paid_verified',
+                'processing',
+                'packed',
+                'ready_to_ship',
+                'shipped',
+                'received',
+                'completed',
+                'cancelled',
+                'payment_rejected'
+            ) DEFAULT 'waiting_payment'");
+        }
     }
 };

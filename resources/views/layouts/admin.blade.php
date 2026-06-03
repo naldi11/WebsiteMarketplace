@@ -13,58 +13,58 @@
     <style>
         body {
             font-family: 'Space Grotesk', sans-serif;
-            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 25%, #dbeafe 55%, #d1fae5 85%, #fef3c7 100%);
+            background: #fff7ed;
             background-attachment: fixed;
             min-height: 100vh;
         }
 
         /* ── Sidebar ── */
         #admin-sidebar {
-            background: linear-gradient(180deg, #1e1b4b 0%, #312e81 30%, #1d4ed8 65%, #0c4a6e 100%);
+            background: #4a1805;
         }
 
         /* ── Glass Card ── */
         .glass-card {
-            background: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.6);
             border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
+            box-shadow: 0 8px 32px rgba(234, 88, 12, 0.08);
         }
 
         /* ── Glass Table Header ── */
         .glass-table-header {
-            background: rgba(99, 102, 241, 0.06);
-            border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+            background: rgba(234, 88, 12, 0.06);
+            border-bottom: 1px solid rgba(234, 88, 12, 0.12);
         }
 
-        /* ── Gradient Headers (per section) ── */
-        .gradient-header-purple { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-        .gradient-header-blue   { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
-        .gradient-header-green  { background: linear-gradient(135deg, #10b981, #34d399); }
-        .gradient-header-amber  { background: linear-gradient(135deg, #f59e0b, #f97316); }
-        .gradient-header-teal   { background: linear-gradient(135deg, #14b8a6, #06b6d4); }
-        .gradient-header-pink   { background: linear-gradient(135deg, #ec4899, #f43f5e); }
-        .gradient-header-red    { background: linear-gradient(135deg, #ef4444, #f43f5e); }
-        .gradient-header-orange { background: linear-gradient(135deg, #f97316, #ef4444); }
-        .gradient-header-indigo { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-        .gradient-header-slate  { background: linear-gradient(135deg, #64748b, #475569); }
+        /* ── Solid Headers (per section) ── */
+        .gradient-header-purple { background: #f97316; }
+        .gradient-header-blue   { background: #f59e0b; }
+        .gradient-header-green  { background: #10b981; }
+        .gradient-header-amber  { background: #f59e0b; }
+        .gradient-header-teal   { background: #14b8a6; }
+        .gradient-header-pink   { background: #ec4899; }
+        .gradient-header-red    { background: #ef4444; }
+        .gradient-header-orange { background: #ea580c; }
+        .gradient-header-indigo { background: #c2410c; }
+        .gradient-header-slate  { background: #64748b; }
 
         /* ── Buttons ── */
         .btn-gradient {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            background: #f97316;
             border: none;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.35);
             transition: all 0.2s;
         }
         .btn-gradient:hover {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            background: #ea580c;
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
             transform: translateY(-1px);
         }
         .btn-gradient-amber {
-            background: linear-gradient(135deg, #f59e0b, #f97316);
+            background: #f59e0b;
             border: none;
             box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
             transition: all 0.2s;
@@ -74,7 +74,7 @@
             transform: translateY(-1px);
         }
         .btn-gradient-teal {
-            background: linear-gradient(135deg, #14b8a6, #06b6d4);
+            background: #14b8a6;
             border: none;
             box-shadow: 0 4px 15px rgba(20, 184, 166, 0.35);
             transition: all 0.2s;
@@ -84,7 +84,7 @@
             transform: translateY(-1px);
         }
         .btn-gradient-green {
-            background: linear-gradient(135deg, #10b981, #34d399);
+            background: #10b981;
             border: none;
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
             transition: all 0.2s;
@@ -94,25 +94,25 @@
             transform: translateY(-1px);
         }
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444, #f43f5e);
+            background: #ef4444;
             border: none;
             box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
             transition: all 0.2s;
         }
         .btn-danger:hover {
-            background: linear-gradient(135deg, #dc2626, #e11d48);
+            background: #dc2626;
             box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45);
             transform: translateY(-1px);
         }
         .btn-outline {
             background: rgba(255,255,255,0.7);
-            border: 1px solid rgba(99,102,241,0.3);
-            color: #6366f1;
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            color: #f97316;
             transition: all 0.2s;
         }
         .btn-outline:hover {
-            background: rgba(99,102,241,0.08);
-            border-color: #6366f1;
+            background: rgba(249, 115, 22, 0.08);
+            border-color: #f97316;
         }
 
         /* ── Badges ── */
@@ -125,21 +125,21 @@
         /* ── Scrollbar ── */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(234, 88, 12, 0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(234, 88, 12, 0.5); }
 
         /* ── Nav item colors per route ── */
-        .nav-active-dashboard  { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
-        .nav-active-users      { background: linear-gradient(135deg,#3b82f6,#06b6d4); }
-        .nav-active-trans      { background: linear-gradient(135deg,#10b981,#34d399); }
-        .nav-active-vouchers   { background: linear-gradient(135deg,#f59e0b,#f97316); }
-        .nav-active-payment    { background: linear-gradient(135deg,#14b8a6,#06b6d4); }
-        .nav-active-categories { background: linear-gradient(135deg,#ec4899,#f43f5e); }
-        .nav-active-disputes   { background: linear-gradient(135deg,#ef4444,#f43f5e); }
-        .nav-active-balances   { background: linear-gradient(135deg,#14b8a6,#10b981); }
-        .nav-active-wallet     { background: linear-gradient(135deg,#8b5cf6,#6366f1); }
-        .nav-active-banners    { background: linear-gradient(135deg,#6366f1,#4f46e5); }
-        .nav-active-settings   { background: linear-gradient(135deg,#64748b,#475569); }
+        .nav-active-dashboard  { background: #f97316; }
+        .nav-active-users      { background: #f59e0b; }
+        .nav-active-trans      { background: #fbbf24; }
+        .nav-active-vouchers   { background: #f97316; }
+        .nav-active-payment    { background: #ea580c; }
+        .nav-active-categories { background: #f97316; }
+        .nav-active-disputes   { background: #ef4444; }
+        .nav-active-balances   { background: #f59e0b; }
+        .nav-active-wallet     { background: #ea580c; }
+        .nav-active-banners    { background: #f97316; }
+        .nav-active-settings   { background: #64748b; }
     </style>
 </head>
 
@@ -169,7 +169,6 @@
                         ['route'=>'admin.users',        'label'=>'Manajemen User',     'color'=>'users',      'icon'=>'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
                         ['route'=>'admin.transactions', 'label'=>'Transaksi',          'color'=>'trans',      'icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
                         ['route'=>'admin.vouchers',     'label'=>'Voucher',            'color'=>'vouchers',   'icon'=>'M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z'],
-                        ['route'=>'admin.payment_methods','label'=>'Metode Pembayaran','color'=>'payment',    'icon'=>'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
                         ['route'=>'admin.categories',   'label'=>'Kategori',           'color'=>'categories', 'icon'=>'M4 6h16M4 12h16m-7 6h7'],
                         ['route'=>'admin.disputes.index','label'=>'Laporan Masalah',   'color'=>'disputes',   'icon'=>'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'],
                         ['route'=>'admin.balances',     'label'=>'Saldo & Keuangan',   'color'=>'balances',   'icon'=>'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
@@ -185,7 +184,7 @@
                         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
                             {{ $isActive
                                 ? 'nav-active-'.$item['color'].' text-white shadow-lg'
-                                : 'text-white/65 hover:text-white hover:bg-white/10' }}">
+                                : 'text-white/75 hover:text-white hover:bg-white/10' }}">
                         <div class="relative flex-shrink-0">
                             <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                 class="{{ $isActive ? 'text-white' : 'text-white/60' }}">
@@ -203,16 +202,6 @@
                             @endif
                         </div>
                         <span class="tracking-tight flex-1">{{ $item['label'] }}</span>
-                        @if($item['route'] === 'admin.disputes.index' && ($disputeNavBadge ?? 0) > 0)
-                            <span id="disputeTextBadge"
-                                class="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                                {{ $disputeNavBadge > 99 ? '99+' : $disputeNavBadge }}
-                            </span>
-                        @else
-                            @if($item['route'] === 'admin.disputes.index')
-                                <span id="disputeTextBadge" class="hidden bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"></span>
-                            @endif
-                        @endif
                     </a>
                 @endforeach
 
@@ -230,7 +219,7 @@
             <!-- Profile -->
             <div class="p-3 border-t border-white/10">
                 <div class="flex items-center gap-3 p-3 rounded-xl bg-white/10">
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center font-bold text-white text-sm flex-shrink-0">
+                    <div class="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center font-bold text-white text-sm flex-shrink-0">
                         {{ substr(auth()->user()->name, 0, 1) }}
                     </div>
                     <div class="flex-1 min-w-0">
@@ -254,7 +243,7 @@
             <!-- Mobile Header -->
             <div class="md:hidden h-16 bg-white/80 backdrop-blur-xl border-b border-white/60 flex items-center justify-between px-5 sticky top-0 z-30 shadow-sm">
                 <div class="flex items-center gap-3">
-                    <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
+                    <div class="w-7 h-7 rounded-lg bg-orange-600 flex items-center justify-center">
                         <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                         </svg>
@@ -296,7 +285,7 @@
                     @yield('content')
                 </div>
 
-                <footer class="mt-16 pt-6 border-t border-indigo-100/60 flex flex-col md:flex-row justify-between items-center gap-3 text-[11px] text-slate-400 font-medium">
+                <footer class="mt-16 pt-6 border-t border-amber-100/60 flex flex-col md:flex-row justify-between items-center gap-3 text-[11px] text-slate-400 font-medium">
                     <div>Market Barang Bekas Admin &copy; {{ date('Y') }}</div>
                     <div class="flex gap-4">
                         <span>Status: <span class="text-emerald-500 font-semibold">Aktif</span></span>
@@ -307,7 +296,7 @@
         </main>
     </div>
 
-    @stack('scripts')
+    @yield('scripts')
 
 <script>
 (function () {
@@ -335,21 +324,19 @@
         } catch (_) {}
     }
 
-    // Update badge di sidebar
+    // Update badge di sidebar (hanya disputeNavBadge yang didekat icon)
     function updateBadge(count) {
         const iconBadge = document.getElementById('disputeNavBadge');
-        const textBadge = document.getElementById('disputeTextBadge');
         const label = count > 99 ? '99+' : String(count);
 
-        [iconBadge, textBadge].forEach(el => {
-            if (!el) return;
+        if (iconBadge) {
             if (count > 0) {
-                el.textContent = label;
-                el.classList.remove('hidden');
+                iconBadge.textContent = label;
+                iconBadge.classList.remove('hidden');
             } else {
-                el.classList.add('hidden');
+                iconBadge.classList.add('hidden');
             }
-        });
+        }
 
         // Update judul tab browser
         const baseTitle = document.title.replace(/^\(\d+\+?\) /, '');

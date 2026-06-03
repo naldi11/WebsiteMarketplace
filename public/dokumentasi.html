@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dokumentasi — Market Barang Bekas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --green: #10b981;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --blue: #3b82f6;
+    --teal: #14b8a6;
+    --pink: #ec4899;
+    --gray: #64748b;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --sub: #64748b;
+    --border: #e2e8f0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ── Cover Page ── */
+  .cover {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #1d4ed8 70%, #0c4a6e 100%);
+    color: white;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+    page-break-after: always;
+  }
+  .cover .logo-circle {
+    width: 80px; height: 80px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; margin-bottom: 28px;
+  }
+  .cover h1 { font-size: 38px; font-weight: 800; margin-bottom: 10px; letter-spacing: -1px; }
+  .cover .subtitle { font-size: 16px; color: rgba(255,255,255,0.7); margin-bottom: 40px; }
+  .cover .meta { display: flex; gap: 32px; margin-top: 40px; flex-wrap: wrap; justify-content: center; }
+  .cover .meta-item { text-align: center; }
+  .cover .meta-item .val { font-size: 28px; font-weight: 800; }
+  .cover .meta-item .lbl { font-size: 11px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .cover .badges { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 32px; }
+  .cover .badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); padding: 6px 16px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+  .cover .version { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 48px; }
+
+  /* ── Layout ── */
+  .page { max-width: 900px; margin: 0 auto; padding: 40px 32px; }
+
+  /* ── Section ── */
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin: 36px 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .section-header h2 { font-size: 20px; font-weight: 700; }
+  .section-header .section-desc { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+  /* ── Platform badge ── */
+  .platform-banner {
+    padding: 14px 20px;
+    border-radius: 14px;
+    margin: 28px 0 0;
+    display: flex; align-items: center; gap: 12px;
+    page-break-inside: avoid;
+  }
+  .platform-banner.web { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+  .platform-banner.android { background: linear-gradient(135deg,#10b981,#059669); }
+  .platform-banner h2 { color: white; font-size: 18px; font-weight: 800; }
+  .platform-banner p { color: rgba(255,255,255,0.8); font-size: 12px; margin-top: 2px; }
+  .platform-banner .icon { font-size: 28px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    page-break-inside: avoid;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .card h3 {
+    font-size: 14px; font-weight: 700; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card h3 .badge-icon {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+
+  /* ── Feature list ── */
+  .feature-list { list-style: none; }
+  .feature-list li {
+    padding: 4px 0;
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 12.5px; color: var(--text);
+  }
+  .feature-list li::before {
+    content: '✓';
+    color: var(--green);
+    font-weight: 700;
+    font-size: 11px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Flow table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  th {
+    background: #f1f5f9;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--sub);
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+
+  /* ── Status badges ── */
+  .status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .status.green { background: #d1fae5; color: #065f46; }
+  .status.blue  { background: #dbeafe; color: #1e40af; }
+  .status.amber { background: #fef3c7; color: #92400e; }
+  .status.red   { background: #fee2e2; color: #991b1b; }
+  .status.purple{ background: #ede9fe; color: #5b21b6; }
+  .status.teal  { background: #ccfbf1; color: #065f46; }
+  .status.gray  { background: #f1f5f9; color: #475569; }
+
+  /* ── Flow diagram ── */
+  .flow-box {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-family: monospace;
+    font-size: 11.5px;
+    white-space: pre-wrap;
+    line-height: 1.8;
+    margin-top: 10px;
+  }
+
+  /* ── Grid ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+  /* ── Stat cards ── */
+  .stat-card {
+    padding: 16px;
+    border-radius: 12px;
+    color: white;
+    page-break-inside: avoid;
+  }
+  .stat-card .num { font-size: 26px; font-weight: 800; }
+  .stat-card .label { font-size: 11px; opacity: 0.8; margin-top: 4px; }
+  .c-purple { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+  .c-green  { background: linear-gradient(135deg,#10b981,#34d399); }
+  .c-blue   { background: linear-gradient(135deg,#3b82f6,#06b6d4); }
+  .c-amber  { background: linear-gradient(135deg,#f59e0b,#f97316); }
+  .c-pink   { background: linear-gradient(135deg,#ec4899,#f43f5e); }
+  .c-teal   { background: linear-gradient(135deg,#14b8a6,#06b6d4); }
+  .c-red    { background: linear-gradient(135deg,#ef4444,#f43f5e); }
+  .c-indigo { background: linear-gradient(135deg,#6366f1,#4f46e5); }
+
+  /* ── Info box ── */
+  .info-box {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 12px;
+    color: #1e40af;
+  }
+  .warning-box {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 12px;
+    color: #92400e;
+  }
+
+  /* ── Print styles ── */
+  @media print {
+    body { background: white; }
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .platform-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .stat-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page-break { page-break-before: always; }
+    .no-break { page-break-inside: avoid; }
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .small { font-size: 11px; color: var(--sub); }
+  strong { font-weight: 700; }
+  .toc-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dotted var(--border); font-size: 13px; }
+  .toc-item .toc-num { color: var(--sub); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     COVER PAGE
+══════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="logo-circle">🛒</div>
+  <h1>Market Barang Bekas</h1>
+  <div class="subtitle">Dokumentasi Fitur & Alur Sistem — Website & Android</div>
+
+  <div class="meta">
+    <div class="meta-item">
+      <div class="val">25+</div>
+      <div class="lbl">Fitur Utama</div>
+    </div>
+    <div class="meta-item">
+      <div class="val">2</div>
+      <div class="lbl">Platform</div>
+    </div>
+    <div class="meta-item">
+      <div class="val">Laravel 12</div>
+      <div class="lbl">Backend</div>
+    </div>
+    <div class="meta-item">
+      <div class="val">Android Java</div>
+      <div class="lbl">Mobile</div>
+    </div>
+  </div>
+
+  <div class="badges">
+    <span class="badge">🌐 Admin Panel Web</span>
+    <span class="badge">📱 Aplikasi Android</span>
+    <span class="badge">💳 MeyPay Wallet</span>
+    <span class="badge">⚠️ Dispute & Refund</span>
+    <span class="badge">💬 Real-time Chat</span>
+  </div>
+
+  <div class="version">Versi Dokumentasi: Mei 2026 &nbsp;|&nbsp; Dibuat otomatis oleh sistem</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     CONTENT
+══════════════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- DAFTAR ISI -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#f1f5f9;">📋</div>
+    <div>
+      <h2>Daftar Isi</h2>
+      <div class="section-desc">Ringkasan dokumen</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toc-item"><span>1. Website Admin Panel — Fitur & Alur</span><span class="toc-num">Halaman 2</span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;1.1 Dashboard & Statistik</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;1.2 Manajemen User</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;1.3 Log Transaksi</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;1.4 Voucher & Metode Pembayaran</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;1.5 Laporan Masalah & Dispute</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;1.6 Saldo, Audit MeyPay & Pengaturan</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;1.7 Notifikasi Real-time Admin</span><span class="toc-num"></span></div>
+    <div class="toc-item" style="margin-top:8px;"><span>2. Aplikasi Android — Fitur & Alur</span><span class="toc-num">Halaman 5</span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;2.1 Autentikasi & Keamanan</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;2.2 Home, Produk & Keranjang</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;2.3 Pembayaran & MeyPay</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;2.4 Riwayat Pesanan & Laporan Masalah</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;2.5 Chat Real-time</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;2.6 Dashboard Penjual</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>3. Alur Lengkap Transaksi & Refund</span><span class="toc-num">Halaman 8</span></div>
+    <div class="toc-item" style="border:none;"><span>4. Ringkasan Status Transaksi</span><span class="toc-num">Halaman 9</span></div>
+  </div>
+
+  <!-- ═══════════════════════════════
+       SECTION 1: WEBSITE ADMIN PANEL
+  ═══════════════════════════════ -->
+  <div class="platform-banner web">
+    <div class="icon">🌐</div>
+    <div>
+      <h2>Website Admin Panel</h2>
+      <p>Laravel 12 · PHP 8.4 · MySQL · Tailwind CSS · Glassmorphism UI</p>
+    </div>
+  </div>
+
+  <!-- 1.1 Dashboard -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#ede9fe;">📊</div>
+    <div>
+      <h2>1.1 Dashboard & Statistik</h2>
+      <div class="section-desc">Pusat kendali dan analitik platform real-time</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#ede9fe;">📈</span>Kartu Statistik Utama</h3>
+      <ul class="feature-list">
+        <li>GMV Kotor (Gross Merchandise Value)</li>
+        <li>Pendapatan Bersih (Service Fee)</li>
+        <li>Total Saldo MeyPay Beredar</li>
+        <li>MeyPay Escrow (Dana Ditahan)</li>
+        <li>Total Pengguna Aktif Platform</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#ede9fe;">🔍</span>Analitik & Filter</h3>
+      <ul class="feature-list">
+        <li>Filter periode: Hari Ini / Mingguan / Bulanan / Tahunan</li>
+        <li>Grafik tren keuangan (line chart)</li>
+        <li>Distribusi status pesanan (donut chart)</li>
+        <li>Top 5 Penjual berdasarkan penghasilan</li>
+        <li>Top 5 Produk terlaris</li>
+        <li>Top 5 Kategori populer</li>
+        <li>Alert produk stok rendah (&lt; 5 unit)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 1.2 Manajemen User -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#dbeafe;">👥</div>
+    <div>
+      <h2>1.2 Manajemen User</h2>
+      <div class="section-desc">Kontrol akses dan identitas pengguna platform</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge-icon" style="background:#dbeafe;">🔐</span>Fitur Manajemen Pengguna</h3>
+    <div class="grid2" style="margin-top:10px;">
+      <ul class="feature-list">
+        <li>Tab filter: Semua / Pembeli / Penjual / Diblokir</li>
+        <li>Lihat avatar, nama, email, nomor telepon</li>
+        <li>Tampilkan nama toko (untuk penjual)</li>
+        <li>Tanggal bergabung pengguna</li>
+      </ul>
+      <ul class="feature-list">
+        <li><strong>Tangguhkan</strong> akun pengguna bermasalah</li>
+        <li><strong>Aktifkan kembali</strong> akun yang ditangguhkan</li>
+        <li><strong>Hapus</strong> pengguna dari sistem (permanen)</li>
+        <li>Admin tidak bisa dihapus/ditangguhkan</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 1.3 Transaksi -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#d1fae5;">🛒</div>
+    <div>
+      <h2>1.3 Log Transaksi</h2>
+      <div class="section-desc">Pemantauan dan verifikasi seluruh pesanan platform</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge-icon" style="background:#d1fae5;">📋</span>Daftar Transaksi</h3>
+    <ul class="feature-list">
+      <li>Tampil semua transaksi: referensi, pihak (pembeli↔penjual), nilai GMV, status, waktu</li>
+      <li>Badge status berwarna per kondisi transaksi</li>
+      <li>Akses ke halaman detail transaksi lengkap</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><span class="badge-icon" style="background:#d1fae5;">🔧</span>Aksi di Detail Transaksi</h3>
+    <table>
+      <tr><th>Aksi Admin</th><th>Kondisi</th><th>Efek</th></tr>
+      <tr><td>Verifikasi Pembayaran</td><td>Status = <span class="status amber">pending</span></td><td>Status → <span class="status blue">paid_verified</span>, dana masuk saldo pending penjual</td></tr>
+      <tr><td>Tolak Pembayaran</td><td>Status = <span class="status amber">pending</span></td><td>Status → <span class="status red">payment_rejected</span> + alasan dikirim</td></tr>
+      <tr><td>Lepas Dana</td><td>Status = <span class="status blue">received</span></td><td>Upload bukti → Dana pindah ke penjual → Status <span class="status green">completed</span></td></tr>
+      <tr><td>Cetak Invoice</td><td>Semua status</td><td>Halaman invoice print-friendly</td></tr>
+    </table>
+  </div>
+
+  <!-- 1.4 Voucher & Pembayaran -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#fef3c7;">🎟️</div>
+    <div>
+      <h2>1.4 Voucher & Metode Pembayaran</h2>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#fef3c7;">🎟️</span>Manajemen Voucher</h3>
+      <ul class="feature-list">
+        <li>Tipe diskon: Nominal Tetap (IDR) atau Persentase (%)</li>
+        <li>Batas maksimum diskon (untuk tipe %)</li>
+        <li>Minimal pembelian yang disyaratkan</li>
+        <li>Tanggal berlaku (mulai & berakhir)</li>
+        <li>Target: semua pengguna / pengguna tertentu</li>
+        <li>Filter kategori produk spesifik</li>
+        <li>Auto-generate syarat & ketentuan</li>
+        <li>Progress bar penggunaan voucher</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#ccfbf1;">💳</span>Metode Pembayaran</h3>
+      <ul class="feature-list">
+        <li>Tipe: Transfer Bank / Dompet Digital / QRIS / Kartu Kredit / COD</li>
+        <li>Konfigurasi nomor rekening/akun</li>
+        <li>Biaya admin: flat (IDR) + persentase (%)</li>
+        <li>Instruksi pembayaran untuk pengguna</li>
+        <li>Aktifkan / nonaktifkan per gateway</li>
+        <li>Urutan tampilan (sort order)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 1.5 Laporan Masalah -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#fee2e2;">⚠️</div>
+    <div>
+      <h2>1.5 Laporan Masalah (Sengketa / Dispute)</h2>
+      <div class="section-desc">Sistem resolusi konflik buyer-seller dengan escrow & refund otomatis</div>
+    </div>
+  </div>
+
+  <div class="card no-break">
+    <h3><span class="badge-icon" style="background:#fee2e2;">📊</span>Alur Status Dispute</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center;">
+      <span class="status blue">open</span> →
+      <span class="status purple">admin_reviewing</span> →
+      <span class="status green">buyer_won</span> /
+      <span class="status teal">seller_won</span> →
+      <span class="status amber">buyer_shipping_back</span> →
+      <span class="status blue">seller_received_back</span> →
+      <span class="status green">refunded</span> /
+      <span class="status gray">closed</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#fee2e2;">🔧</span>Aksi Panel Resolusi Admin</h3>
+      <ul class="feature-list">
+        <li>Tandai "Sedang Ditinjau" → kirim notifikasi ke chat</li>
+        <li>Putuskan pemenang: Pembeli atau Penjual</li>
+        <li>Tambahkan catatan admin</li>
+        <li>Admin Konfirmasi Barang Diterima (bypass alur normal)</li>
+        <li>Force Refund langsung ke pembeli</li>
+        <li>Lihat log aktivitas dispute lengkap</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#ede9fe;">💬</span>Chat Terintegrasi di Detail</h3>
+      <ul class="feature-list">
+        <li>Percakapan buyer ↔ seller tampil langsung di halaman</li>
+        <li>Admin kirim pesan intervensi (masuk room chat buyer-seller)</li>
+        <li>Pesan admin ditampilkan sebagai bubble ungu terpusat</li>
+        <li>Auto-refresh percakapan setiap 15 detik</li>
+        <li>Deduplication: pesan identik tidak tampil dobel</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card no-break">
+    <h3><span class="badge-icon" style="background:#fee2e2;">💰</span>Alur Refund Otomatis (Pembeli Menang)</h3>
+    <div class="flow-box">Admin putuskan → Pembeli menang
+  ↓
+Notifikasi ke chat: "Silakan kirim barang kembali ke penjual"
+  ↓
+Pembeli input nama driver + plat nomor di aplikasi Android
+  ↓
+Penjual konfirmasi menerima barang kembali
+  ↓
+Dana OTOMATIS dikreditkan ke MeyPay Wallet pembeli
+  ↓
+Status transaksi: disputed_refunded ✅</div>
+    <div class="info-box" style="margin-top:10px;">
+      <strong>Keamanan:</strong> Semua operasi wallet menggunakan DB transaction + lockForUpdate() untuk mencegah double-refund concurrent.
+    </div>
+  </div>
+
+  <!-- 1.6 Saldo & Pengaturan -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#d1fae5;">💰</div>
+    <div><h2>1.6 Saldo, Audit & Pengaturan</h2></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#d1fae5;">📊</span>Saldo & Keuangan</h3>
+      <ul class="feature-list">
+        <li>Tabel penjual: total penjualan, penghasilan bersih, total ditarik</li>
+        <li>Total pendapatan platform keseluruhan</li>
+        <li>Grafik pendapatan bulanan (tahun berjalan)</li>
+        <li>10 transaksi selesai terbaru</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#ccfbf1;">📋</span>Log Audit MeyPay</h3>
+      <ul class="feature-list">
+        <li>Semua transaksi dompet MeyPay seluruh pengguna</li>
+        <li>Filter pencarian nama/email pengguna</li>
+        <li>Filter tipe: topup / refund / payout / transfer</li>
+        <li>Riwayat saldo sebelum dan sesudah transaksi</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#fef3c7;">🖼️</span>Banner Iklan</h3>
+      <ul class="feature-list">
+        <li>Upload gambar banner promosi</li>
+        <li>Aktifkan/nonaktifkan banner</li>
+        <li>Gambar lama otomatis dihapus saat update</li>
+        <li>Ditampilkan di halaman home Android</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#f1f5f9;">⚙️</span>Pengaturan Sistem</h3>
+      <ul class="feature-list">
+        <li>Edit konfigurasi global platform</li>
+        <li>Contoh: persentase biaya layanan (service_fee_percent)</li>
+        <li>Disimpan di tabel system_settings</li>
+        <li>Berlaku real-time tanpa restart server</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 1.7 Notifikasi -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#ede9fe;">🔔</div>
+    <div><h2>1.7 Notifikasi Real-time Admin</h2></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge-icon" style="background:#ede9fe;">⚡</span>Sistem Notifikasi WhatsApp-like</h3>
+    <div class="grid2" style="margin-top:10px;">
+      <ul class="feature-list">
+        <li>Badge merah di sidebar "Laporan Masalah" (update tiap 12 detik)</li>
+        <li>Badge angka di judul tab browser</li>
+        <li>Browser push notification saat laporan baru masuk</li>
+      </ul>
+      <ul class="feature-list">
+        <li>Bunyi notifikasi via Web Audio API (tanpa file mp3)</li>
+        <li>Klik notifikasi → langsung fokus ke tab admin</li>
+        <li>Auto-deteksi permission browser notification</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════
+       SECTION 2: ANDROID
+  ═══════════════════════════════ -->
+  <div class="page-break"></div>
+  <div class="platform-banner android">
+    <div class="icon">📱</div>
+    <div>
+      <h2>Aplikasi Android</h2>
+      <p>Java · Retrofit 2 · Material Design 3 · MeyPay Wallet Integration</p>
+    </div>
+  </div>
+
+  <!-- 2.1 Autentikasi -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#dbeafe;">🔐</div>
+    <div><h2>2.1 Autentikasi & Keamanan</h2></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#dbeafe;">👤</span>Autentikasi Pengguna</h3>
+      <ul class="feature-list">
+        <li>Login email + password → token Sanctum</li>
+        <li>Registrasi akun baru</li>
+        <li>Lupa password via OTP email</li>
+        <li>Token disimpan di SharedPreferences (SessionManager)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#fee2e2;">🛡️</span>Keamanan Token</h3>
+      <ul class="feature-list">
+        <li>Auto-logout + redirect ke Login saat token expired (401)</li>
+        <li>Global OkHttp interceptor mendeteksi 401 semua endpoint</li>
+        <li>Session dibersihkan (SessionManager.logoutUser())</li>
+        <li>Semua activity stack dibersihkan saat logout</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2.2 Home, Produk, Keranjang -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#d1fae5;">🏠</div>
+    <div><h2>2.2 Home, Produk & Keranjang</h2></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge-icon" style="background:#d1fae5;">🏠</span>Halaman Home</h3>
+    <div class="grid2" style="margin-top:10px;">
+      <ul class="feature-list">
+        <li>Banner iklan dari admin panel</li>
+        <li>Filter produk berdasarkan kategori</li>
+        <li>Filter jarak ke penjual (GPS-based)</li>
+        <li>QR Scanner (tombol FAB tengah)</li>
+      </ul>
+      <ul class="feature-list">
+        <li>Badge wishlist di bottom navigation</li>
+        <li>Badge laporan masalah aktif di "Pesanan"</li>
+        <li>Notifikasi lokal saat ada dispute butuh aksi</li>
+        <li>Auto-refresh badge setiap kali kembali ke home</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#d1fae5;">📦</span>Detail Produk</h3>
+      <ul class="feature-list">
+        <li>Slider gambar produk multiple</li>
+        <li>Deskripsi, harga, stok, lokasi penjual</li>
+        <li>Jarak estimasi ke penjual (GPS)</li>
+        <li>Tambah ke Keranjang</li>
+        <li>Beli Langsung (checkout single)</li>
+        <li>Toggle Wishlist (simpan favorit)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#fef3c7;">🛒</span>Keranjang & Checkout</h3>
+      <ul class="feature-list">
+        <li>Kelola item: tambah/hapus/update qty</li>
+        <li>Pilih alamat pengiriman</li>
+        <li>Pilih metode pembayaran</li>
+        <li>Input & validasi kode voucher real-time</li>
+        <li>Preview rincian: subtotal + biaya layanan + diskon</li>
+        <li>Konfirmasi & buat order</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2.3 Pembayaran -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#ccfbf1;">💸</div>
+    <div><h2>2.3 Pembayaran & MeyPay Wallet</h2></div>
+  </div>
+
+  <div class="card no-break">
+    <h3><span class="badge-icon" style="background:#ccfbf1;">💳</span>Metode Pembayaran yang Didukung</h3>
+    <table>
+      <tr><th>Metode</th><th>Alur</th><th>Verifikasi</th></tr>
+      <tr><td><strong>MeyPay Wallet</strong></td><td>Bayar langsung dari saldo MeyPay, verify PIN</td><td>Otomatis real-time</td></tr>
+      <tr><td><strong>Transfer Bank</strong></td><td>Upload foto bukti pembayaran</td><td>Manual oleh Admin</td></tr>
+      <tr><td><strong>QRIS</strong></td><td>Scan QR code yang di-generate sistem</td><td>Otomatis via gateway</td></tr>
+      <tr><td><strong>Virtual Account</strong></td><td>Transfer ke nomor VA yang di-generate</td><td>Otomatis via gateway</td></tr>
+      <tr><td><strong>COD</strong></td><td>Bayar saat barang diterima</td><td>Driver konfirmasi</td></tr>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#ccfbf1;">💰</span>MeyPay Wallet</h3>
+      <ul class="feature-list">
+        <li>Lihat saldo tersedia & saldo pending (escrow)</li>
+        <li>Top-up saldo MeyPay</li>
+        <li>Riwayat transaksi wallet lengkap</li>
+        <li>Verify PIN sebelum transaksi</li>
+        <li>Dana pending = uang yang ditahan untuk pesanan aktif</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#fef3c7;">📊</span>Alur Dana Escrow</h3>
+      <ul class="feature-list">
+        <li>Pembeli bayar → dana masuk <em>pending_balance</em></li>
+        <li>Pesanan selesai (received) → dana ke penjual (90%)</li>
+        <li>Platform fee 10% dicatat sebagai PlatformEarning</li>
+        <li>Dispute/refund → dana kembali ke pembeli</li>
+        <li>Penjual tarik saldo → ke rekening eksternal</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2.4 Riwayat Pesanan -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#fef3c7;">📦</div>
+    <div><h2>2.4 Riwayat Pesanan & Laporan Masalah</h2></div>
+  </div>
+
+  <div class="card no-break">
+    <h3><span class="badge-icon" style="background:#fef3c7;">📋</span>Tombol Aksi per Status Pesanan (Pembeli)</h3>
+    <table>
+      <tr><th>Status</th><th>Tombol yang Muncul</th><th>Aksi</th></tr>
+      <tr><td><span class="status amber">waiting_payment</span></td><td>Bayar Sekarang / Upload Bukti Bayar</td><td>Buka PaymentActivity atau picker gambar</td></tr>
+      <tr><td><span class="status blue">paid_verified</span></td><td>Lihat Invoice</td><td>Buka InvoiceActivity</td></tr>
+      <tr><td><span class="status blue">shipped</span></td><td>Konfirmasi Diterima + Ajukan Laporan Masalah</td><td>Konfirmasi atau buka DisputeDetailActivity</td></tr>
+      <tr><td><span class="status purple">disputed</span></td><td>📦 Kirim Barang Kembali</td><td>Buka DisputeDetailActivity (form resi)</td></tr>
+      <tr><td><span class="status green">disputed_refunded</span></td><td>✅ Lihat Detail Refund</td><td>Lihat konfirmasi refund di DisputeDetailActivity</td></tr>
+      <tr><td><span class="status green">completed</span></td><td>Lihat Invoice</td><td>Buka InvoiceActivity</td></tr>
+      <tr><td><span class="status red">cancelled</span></td><td>Hapus Pesanan</td><td>Hapus dari riwayat</td></tr>
+    </table>
+  </div>
+
+  <div class="card no-break">
+    <h3><span class="badge-icon" style="background:#fee2e2;">⚠️</span>DisputeDetailActivity — Alur Lengkap Pembeli</h3>
+    <div class="flow-box">Tap "Ajukan Laporan Masalah" (status: shipped)
+  ↓
+DisputeDetailActivity terbuka
+  ↓
+  [Belum ada dispute?] → Dialog: "Isi alasan laporan" → POST /api/disputes/{txId}
+                           → Laporan terkirim ke admin → Status: OPEN
+  ↓
+  [open / admin_reviewing] → Info: "Laporan sedang ditinjau admin"
+  ↓
+  [buyer_won] → Form INPUT: Nama Driver + Plat Nomor → POST /disputes/{id}/buyer-ship-back
+  ↓
+  [buyer_shipping_back] → Info resi + menunggu konfirmasi penjual
+  ↓
+  [seller_received_back] → "Dana sedang diproses..."
+  ↓
+  [refunded] → "Dana masuk MeyPay Wallet kamu ✅"</div>
+  </div>
+
+  <!-- 2.5 Chat -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#ede9fe;">💬</div>
+    <div><h2>2.5 Chat Real-time</h2></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#ede9fe;">💬</span>Fitur Chat</h3>
+      <ul class="feature-list">
+        <li>Percakapan buyer ↔ seller real-time</li>
+        <li>Kirim pesan teks + gambar (attachment)</li>
+        <li>Polling otomatis setiap 3 detik</li>
+        <li>Waktu pesan dalam zona WIB (Asia/Jakarta)</li>
+        <li>Status baca/belum baca per pesan</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge-icon" style="background:#7c3aed; color:white;">👮</span>Pesan Admin dalam Chat</h3>
+      <ul class="feature-list">
+        <li>Pesan admin masuk ke room buyer-seller (bukan chat terpisah)</li>
+        <li>Ditampilkan sebagai bubble ungu terpusat</li>
+        <li>Label "Admin" jelas di atas bubble</li>
+        <li>Banner laporan masalah otomatis di atas chat</li>
+        <li>Banner menampilkan status dispute terkini</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2.6 Penjual -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#fef3c7;">🏪</div>
+    <div><h2>2.6 Dashboard Penjual</h2></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge-icon" style="background:#fef3c7;">📊</span>Fitur Lengkap Penjual</h3>
+    <div class="grid2" style="margin-top:10px;">
+      <ul class="feature-list">
+        <li>Statistik: total pesanan, omzet, produk aktif</li>
+        <li>Tambah produk baru + upload foto multiple</li>
+        <li>Edit & hapus produk</li>
+        <li>Daftar pesanan masuk dengan filter status</li>
+        <li>Kirim pesanan: input nama driver + plat nomor</li>
+      </ul>
+      <ul class="feature-list">
+        <li>Konfirmasi pesanan dikemas (packaging)</li>
+        <li>Upload foto bukti pengiriman</li>
+        <li>Saldo penjual: tersedia & pending</li>
+        <li>Riwayat penghasilan per transaksi</li>
+        <li>Tarik dana ke rekening bank</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════
+       SECTION 3: ALUR LENGKAP
+  ═══════════════════════════════ -->
+  <div class="page-break"></div>
+  <div class="section-header">
+    <div class="section-icon" style="background:#d1fae5;">🔄</div>
+    <div>
+      <h2>3. Alur Lengkap Transaksi Marketplace</h2>
+      <div class="section-desc">End-to-end flow dari pembelian hingga penyelesaian</div>
+    </div>
+  </div>
+
+  <div class="card no-break">
+    <h3><span class="badge-icon" style="background:#d1fae5;">✅</span>Alur Normal (Tanpa Masalah)</h3>
+    <div class="flow-box">PEMBELI                        PENJUAL                   ADMIN
+  │                              │                          │
+  ├─ Pilih produk & checkout     │                          │
+  ├─ Bayar (MeyPay/Transfer)     │                          │
+  │                              │               [Verifikasi pembayaran]
+  │                       Notifikasi pesanan baru           │
+  │                              ├─ Kemas produk            │
+  │                              ├─ Input driver + plat nomor│
+  │                              ├─ Tandai "Dikirim"        │
+  ├─ Konfirmasi barang diterima  │                          │
+  │                              │               [Lepas dana ke penjual]
+  └─ Transaksi SELESAI ──────────┘                          │
+                                                 Platform fee 10% dicatat</div>
+  </div>
+
+  <div class="card no-break">
+    <h3><span class="badge-icon" style="background:#fee2e2;">⚠️</span>Alur Dispute & Refund (Pembeli Menang)</h3>
+    <div class="flow-box">PEMBELI                        PENJUAL                   ADMIN
+  │                              │                          │
+  ├─ Ajukan laporan masalah      │                          │
+  │  (saat status: shipped)      │                          │
+  │                              │              ├─ Tinjau laporan
+  │                              │              ├─ Tandai "Sedang Ditinjau"
+  │                              │              └─ Putuskan: PEMBELI MENANG
+  │                              │                          │
+  ├─ Input driver + plat nomor   │                          │
+  ├─ Kirim barang kembali ───────►                          │
+  │                         Konfirmasi terima barang        │
+  │                              │                          │
+  └─ Dana OTOMATIS masuk ◄───────┴──────────────────────────┘
+     MeyPay Wallet (100%)
+     Status: disputed_refunded ✅</div>
+  </div>
+
+  <div class="card no-break">
+    <h3><span class="badge-icon" style="background:#ccfbf1;">💰</span>Alur Dispute (Penjual Menang)</h3>
+    <div class="flow-box">Admin putuskan: PENJUAL MENANG
+  ↓
+Dana dilepas dari escrow pembeli
+  ↓
+Penjual menerima 90% dari total transaksi
+  ↓
+10% masuk sebagai Platform Fee (PlatformEarning)
+  ↓
+Transaksi ditandai: completed
+Pembeli tidak bisa memberikan rating</div>
+  </div>
+
+  <!-- ═══════════════════════════════
+       SECTION 4: STATUS REFERENCE
+  ═══════════════════════════════ -->
+  <div class="section-header">
+    <div class="section-icon" style="background:#f1f5f9;">📊</div>
+    <div>
+      <h2>4. Referensi Status Transaksi</h2>
+      <div class="section-desc">Semua kemungkinan status dan artinya</div>
+    </div>
+  </div>
+
+  <div class="card no-break">
+    <table>
+      <tr><th>Status</th><th>Label</th><th>Artinya</th><th>Siapa yang Bisa Aksi</th></tr>
+      <tr><td><span class="status amber">waiting_payment</span></td><td>Menunggu Pembayaran</td><td>Order dibuat, belum ada pembayaran</td><td>Pembeli bayar</td></tr>
+      <tr><td><span class="status amber">pending</span></td><td>Menunggu Verifikasi</td><td>Bukti bayar terupload, menunggu admin</td><td>Admin verifikasi</td></tr>
+      <tr><td><span class="status red">payment_rejected</span></td><td>Pembayaran Ditolak</td><td>Admin menolak bukti bayar</td><td>Pembeli upload ulang</td></tr>
+      <tr><td><span class="status blue">paid_verified</span></td><td>Terverifikasi</td><td>Pembayaran dikonfirmasi admin</td><td>Penjual kemas barang</td></tr>
+      <tr><td><span class="status blue">processing</span></td><td>Diproses</td><td>Penjual sedang memproses pesanan</td><td>Penjual update status</td></tr>
+      <tr><td><span class="status blue">packaging</span></td><td>Dikemas</td><td>Barang sedang dikemas</td><td>Penjual kirim</td></tr>
+      <tr><td><span class="status blue">ready_to_ship</span></td><td>Siap Kirim</td><td>Barang siap diserahkan ke driver</td><td>Penjual konfirmasi kirim</td></tr>
+      <tr><td><span class="status teal">shipped</span></td><td>Dikirim</td><td>Driver mengambil & mengantar barang</td><td>Pembeli konfirmasi/laporan</td></tr>
+      <tr><td><span class="status teal">received</span></td><td>Diterima</td><td>Pembeli konfirmasi terima barang</td><td>Admin lepas dana</td></tr>
+      <tr><td><span class="status green">completed</span></td><td>Selesai</td><td>Dana diteruskan ke penjual</td><td>Pembeli rating (jika ada)</td></tr>
+      <tr><td><span class="status purple">disputed</span></td><td>Dalam Sengketa</td><td>Pembeli membuka laporan masalah</td><td>Admin tinjau</td></tr>
+      <tr><td><span class="status green">disputed_refunded</span></td><td>Dana Dikembalikan</td><td>Refund berhasil ke pembeli</td><td>Selesai</td></tr>
+      <tr><td><span class="status gray">cancelled</span></td><td>Dibatalkan</td><td>Transaksi dibatalkan</td><td>Hapus dari riwayat</td></tr>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <hr>
+  <div style="text-align:center;padding:24px 0;color:var(--sub);">
+    <div style="font-size:14px;font-weight:700;color:var(--text);">Market Barang Bekas</div>
+    <div style="font-size:11px;margin-top:4px;">Dokumentasi Sistem — Laravel 12 + Android Java &nbsp;·&nbsp; Mei 2026</div>
+    <div style="font-size:11px;margin-top:8px;">
+      Untuk menyimpan sebagai PDF: Buka di Chrome → Ctrl+P → Pilih "Save as PDF" → Simpan
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Auto print hint
+window.addEventListener('load', function() {
+  console.log('Untuk simpan PDF: Ctrl+P → Save as PDF');
+});
+</script>
+</body>
+</html>

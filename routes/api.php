@@ -88,6 +88,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/disputes/{transactionId}', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'show']);
     Route::post('/disputes/{id}/buyer-ship-back', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'buyerShipBack']);
     Route::post('/disputes/{id}/seller-confirm-return', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'sellerConfirmReturn']);
+    // Seller dispute
+    Route::get('/seller/disputes', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'sellerIndex']);
     // Admin dispute
     Route::get('/admin/disputes', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'adminIndex']);
     Route::post('/admin/disputes/{id}/resolve', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'adminResolve']);

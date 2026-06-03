@@ -11,8 +11,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        // Adding 'payment_rejected' to the status enum
-        DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('waiting_payment', 'pending', 'paid_verified', 'shipped', 'received', 'completed', 'cancelled', 'payment_rejected') DEFAULT 'waiting_payment'");
+        if (DB::getDriverName() !== 'sqlite') {
+            // Adding 'payment_rejected' to the status enum
+            DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('waiting_payment', 'pending', 'paid_verified', 'shipped', 'received', 'completed', 'cancelled', 'payment_rejected') DEFAULT 'waiting_payment'");
+        }
     }
 
     /**
@@ -20,7 +22,9 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        // Removing 'payment_rejected' - be careful as this might fail if there are existing rows with this status
-        DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('waiting_payment', 'pending', 'paid_verified', 'shipped', 'received', 'completed', 'cancelled') DEFAULT 'waiting_payment'");
+        if (DB::getDriverName() !== 'sqlite') {
+            // Removing 'payment_rejected' - be careful as this might fail if there are existing rows with this status
+            DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('waiting_payment', 'pending', 'paid_verified', 'shipped', 'received', 'completed', 'cancelled') DEFAULT 'waiting_payment'");
+        }
     }
 };

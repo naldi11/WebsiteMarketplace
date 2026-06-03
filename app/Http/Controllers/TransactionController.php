@@ -72,7 +72,7 @@ class TransactionController extends Controller
         // Buyer pays: (Subtotal - Discount) + ServiceFee.
 
         $serviceFee = ceil($subtotal * $serviceFeePercent / 100);
-        $totalPrice = ($subtotal - $discountAmount) + $serviceFee;
+        $totalPrice = ($subtotal - $discountAmount);
         if ($totalPrice < 0)
             $totalPrice = 0;
 
@@ -305,8 +305,8 @@ class TransactionController extends Controller
                 // Seller amount (what seller will receive after service fee)
                 $sellerAmount = $sellerSubtotal - $sellerDiscount;
 
-                // Total buyer pays (subtotal - discount + service fee + shipping + admin fee)
-                $totalAmount = $sellerAmount + $sellerServiceFee + $sellerShippingCost + $sellerAdminFee;
+                // Total buyer pays (subtotal - discount + shipping + admin fee)
+                $totalAmount = $sellerAmount + $sellerShippingCost + $sellerAdminFee;
 
                 // 1. Create Transaction Record
                 $transaction = Transaction::create([

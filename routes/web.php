@@ -9,10 +9,10 @@ use App\Http\Controllers\ProfileController;
 
 // Public Routes
 Route::get('/', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/home', function () {
     return redirect()->route('products.index');
 })->name('home');
-Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 
 
 Route::middleware('guest')->group(function () {

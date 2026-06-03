@@ -64,7 +64,7 @@
                         </div>
                         <div>
                             <p class="font-black text-sm uppercase tracking-wide">Percakapan</p>
-                            <p class="text-white/60 text-[10px] font-mono">{{ $messages->count() }} pesan tercatat</p>
+                            <p class="text-white/60 text-[10px] font-mono"><span id="messageCount">{{ $messages->count() }}</span> pesan tercatat</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -93,13 +93,37 @@
                     <div class="p-5 space-y-4">
                         @forelse($messages as $msg)
                             @php
-                                $isAdmin      = str_starts_with($msg->message, '[Admin]');
-                                $isBuyer      = (!$isAdmin && $msg->sender_id === $dispute->buyer_id);
-                                $isSeller     = (!$isAdmin && $msg->sender_id === $dispute->seller_id);
-                                $cleanAdminMsg = $isAdmin ? trim(substr($msg->message, 7)) : $msg->message;
+                                $messageText  = $msg->message ?? '';
+                                $isSystem     = (
+                                    str_starts_with($messageText, 'Pembeli membuka laporan') ||
+                                    str_starts_with($messageText, 'Laporan diselesaikan') ||
+                                    str_starts_with($messageText, 'Pembeli mengirim barang kembali') ||
+                                    str_starts_with($messageText, 'Penjual konfirmasi') ||
+                                    str_starts_with($messageText, 'Penjual telah menerima') ||
+                                    str_starts_with($messageText, 'Laporan sedang ditinjau oleh admin') ||
+                                    str_starts_with($messageText, 'Admin mengkonfirmasi penjual') ||
+                                    str_contains($messageText, 'telah dikembalikan ke MeyPay Wallet pembeli') ||
+                                    str_contains($messageText, 'Catatan admin:')
+                                );
+                                $isAdmin      = (!$isSystem && str_starts_with($messageText, '[Admin]'));
+                                $isBuyer      = (!$isSystem && !$isAdmin && $msg->sender_id === $dispute->buyer_id);
+                                $isSeller     = (!$isSystem && !$isAdmin && $msg->sender_id === $dispute->seller_id);
+                                $cleanAdminMsg = $isAdmin ? trim(substr($messageText, 7)) : $messageText;
                             @endphp
 
-                            @if($isAdmin)
+                            @if($isSystem)
+                                {{-- System Notification — Center aligned --}}
+                                <div class="flex justify-center my-3">
+                                    <div class="max-w-md w-auto">
+                                        <div class="bg-yellow-50 border border-yellow-200 text-slate-800 rounded-2xl px-5 py-3 shadow-sm text-center">
+                                            <div class="text-[9px] text-amber-700 mb-1 font-black uppercase tracking-widest">Notification System</div>
+                                            <p class="text-xs font-semibold leading-relaxed">{{ $msg->message }}</p>
+                                            <p class="text-gray-400 text-[9px] mt-1 font-mono">{{ $msg->created_at?->format('H:i') }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            @elseif($isAdmin)
                                 {{-- Admin Message — purple glass --}}
                                 <div class="flex justify-center my-3">
                                     <div class="max-w-lg w-full">
@@ -138,9 +162,7 @@
                                                 alt="attachment">
                                         @endif
                                         @if($msg->message)
-                                            <div class="bg-blue-50/80 backdrop-blur border border-blue-100 text-gray-800 text-sm px-4 py-2.5 rounded-2xl rounded-bl-none whitespace-pre-wrap shadow-sm leading-relaxed">
-                                                {{ $msg->message }}
-                                            </div>
+                                            <div class="bg-blue-50/80 backdrop-blur border border-blue-100 text-gray-800 text-sm px-4 py-2.5 rounded-2xl rounded-bl-none whitespace-pre-wrap shadow-sm leading-relaxed">{{ $msg->message }}</div>
                                         @endif
                                         <p class="text-[9px] text-gray-400 mt-1 pl-1 font-mono">{{ $msg->created_at?->format('d M, H:i') }}</p>
                                     </div>
@@ -159,9 +181,7 @@
                                                 alt="attachment">
                                         @endif
                                         @if($msg->message)
-                                            <div class="bg-emerald-500/90 backdrop-blur text-white text-sm px-4 py-2.5 rounded-2xl rounded-br-none whitespace-pre-wrap shadow-sm shadow-emerald-500/20 leading-relaxed">
-                                                {{ $msg->message }}
-                                            </div>
+                                            <div class="bg-emerald-500/90 backdrop-blur text-white text-sm px-4 py-2.5 rounded-2xl rounded-br-none whitespace-pre-wrap shadow-sm shadow-emerald-500/20 leading-relaxed">{{ $msg->message }}</div>
                                         @endif
                                         <p class="text-[9px] text-gray-400 mt-1 pr-1 font-mono text-right">{{ $msg->created_at?->format('d M, H:i') }}</p>
                                     </div>
@@ -330,11 +350,46 @@
         const countdown = document.getElementById('refreshCountdown');
         const bar = document.getElementById('refreshBar');
 
+        function refreshChat() {
+            fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    const newChatBox = doc.getElementById('chatBox');
+                    const currentChatBox = document.getElementById('chatBox');
+                    
+                    if (newChatBox && currentChatBox) {
+                        // Check if user is scrolled to/near the bottom
+                        const isAtBottom = currentChatBox.scrollHeight - currentChatBox.scrollTop - currentChatBox.clientHeight < 100;
+                        
+                        currentChatBox.innerHTML = newChatBox.innerHTML;
+                        
+                        // If they were at the bottom, keep them scrolled to the bottom
+                        if (isAtBottom) {
+                            currentChatBox.scrollTop = currentChatBox.scrollHeight;
+                        }
+                    }
+                    
+                    // Update message count badge
+                    const newCount = doc.getElementById('messageCount');
+                    const oldCount = document.getElementById('messageCount');
+                    if (newCount && oldCount) {
+                        oldCount.textContent = newCount.textContent;
+                    }
+                })
+                .catch(err => console.error('Error refreshing chat:', err));
+        }
+
         setInterval(() => {
             secs--;
             if (countdown) countdown.textContent = secs;
             if (bar) bar.style.width = ((secs / totalSecs) * 100) + '%';
-            if (secs <= 0) location.reload();
+            if (secs <= 0) {
+                refreshChat();
+                secs = totalSecs;
+            }
         }, 1000);
     </script>
 @endsection

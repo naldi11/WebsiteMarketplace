@@ -17,7 +17,7 @@ class ProductControllerApi extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('category', 'images', 'user')->withAvgRating();
+        $query = Product::with('category', 'images', 'user')->where('stock', '>', 0)->withAvgRating();
 
         // Apply general filters
         $query->filter($request->only('search', 'category'));

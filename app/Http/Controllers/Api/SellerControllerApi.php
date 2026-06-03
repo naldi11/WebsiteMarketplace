@@ -17,7 +17,7 @@ class SellerControllerApi extends Controller
         $userId = $request->user()->id;
         $transactions = Transaction::where('seller_id', $userId)
             ->where('user_hidden', false)
-            ->with(['buyer', 'items.product'])
+            ->with(['buyer', 'items.product', 'dispute'])
             ->latest()
             ->get();
 
@@ -28,6 +28,7 @@ class SellerControllerApi extends Controller
             'shipped' => Transaction::where('seller_id', $userId)->where('status', 'shipped')->where('seller_seen', false)->count(),
             'received' => Transaction::where('seller_id', $userId)->whereIn('status', ['received', 'completed'])->where('seller_seen', false)->count(),
             'cancelled' => Transaction::where('seller_id', $userId)->where('status', 'cancelled')->where('user_hidden', false)->where('seller_seen', false)->count(),
+            'disputed' => Transaction::where('seller_id', $userId)->whereIn('status', ['disputed', 'disputed_refunded'])->where('seller_seen', false)->count(),
         ];
 
         return response()->json([

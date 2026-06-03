@@ -12,10 +12,14 @@ return new class extends Migration
         Schema::create('payment_methods', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('code')->unique(); // e.g. 'meypay_wallet', 'transfer_bca'
+            $table->string('account_number')->nullable();
+            $table->string('code')->unique();
             $table->string('description')->nullable();
             $table->string('icon')->nullable();
-            $table->string('type')->default('manual'); // manual, wallet, gateway
+            $table->string('type')->default('manual');
+            $table->text('instructions')->nullable();
+            $table->decimal('admin_fee', 12, 2)->default(0);
+            $table->decimal('admin_fee_percent', 5, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->integer('sort_order')->default(0);
             $table->timestamps();

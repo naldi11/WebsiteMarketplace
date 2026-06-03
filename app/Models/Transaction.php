@@ -32,6 +32,7 @@ class Transaction extends Model
         'receipt_photos',
         // New fields
         'delivery_type',
+        'shipping_vehicle',
         'shipping_cost',
         'shipping_discount',
         'expires_at',

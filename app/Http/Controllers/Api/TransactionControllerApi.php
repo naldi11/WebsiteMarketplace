@@ -133,7 +133,7 @@ class TransactionControllerApi extends Controller
                 }
             }
 
-            $grandTotal = max(0, $totalPrice + $serviceFee + $adminFee - $discount);
+            $grandTotal = max(0, $totalPrice + $adminFee - $discount);
 
             $transaction = Transaction::create([
                 'buyer_id' => $userId,
@@ -245,7 +245,7 @@ class TransactionControllerApi extends Controller
                 }
             }
 
-            $grandTotal = max(0, $totalPrice + $serviceFee + $adminFee - $discount);
+            $grandTotal = max(0, $totalPrice + $adminFee - $discount);
 
             $transaction = Transaction::create([
                 'buyer_id' => $userId,
@@ -304,6 +304,7 @@ class TransactionControllerApi extends Controller
             'cart_ids.*' => 'exists:carts,id',
             'voucher_code' => 'nullable|string',
             'delivery_type' => 'required|in:pickup,courier',
+            'shipping_vehicle' => 'nullable|string|in:motor,becak,pickup,jemput_sendiri',
             'user_address_id' => 'nullable|exists:user_addresses,id',
         ]);
 
@@ -358,29 +359,72 @@ class TransactionControllerApi extends Controller
 
         $shippingCost = 0;
         $distanceKm = null;
-        if ($request->delivery_type === 'courier') {
-            $buyerAddress = $request->filled('user_address_id') ? \App\Models\UserAddress::find($request->user_address_id) : null;
-            $seller = \App\Models\User::find($sellerId);
-            $sellerAddress = $seller ? $seller->addresses()->where('is_default', true)->first() : null;
+        $shippingVehicle = $request->input('shipping_vehicle');
+        if ($request->delivery_type === 'pickup') {
+            $shippingVehicle = 'jemput_sendiri';
+        } else if (!$shippingVehicle) {
+            $shippingVehicle = 'motor';
+        }
 
-            // Seller coordinates: prefer seller's default address, fallback to product coordinates
-            $sLat = $sellerAddress && $sellerAddress->latitude ? $sellerAddress->latitude : ($items[0]['product']->latitude ?? 0);
-            $sLon = $sellerAddress && $sellerAddress->longitude ? $sellerAddress->longitude : ($items[0]['product']->longitude ?? 0);
+        $buyerAddress = $request->filled('user_address_id') ? \App\Models\UserAddress::find($request->user_address_id) : null;
+        $seller = \App\Models\User::find($sellerId);
+        $sellerAddress = $seller ? $seller->addresses()->where('is_default', true)->first() : null;
 
-            // Buyer coordinates: prefer saved address, fallback to device GPS from request
-            $bLat = ($buyerAddress && $buyerAddress->latitude) ? $buyerAddress->latitude : ($request->input('buyer_latitude', 0));
-            $bLon = ($buyerAddress && $buyerAddress->longitude) ? $buyerAddress->longitude : ($request->input('buyer_longitude', 0));
+        // Seller coordinates: prefer seller's default address, fallback to product coordinates
+        $sLat = $sellerAddress && $sellerAddress->latitude ? $sellerAddress->latitude : ($items[0]['product']->latitude ?? 0);
+        $sLon = $sellerAddress && $sellerAddress->longitude ? $sellerAddress->longitude : ($items[0]['product']->longitude ?? 0);
 
-            if ($sLat && $sLon && $bLat && $bLon) {
+        // Buyer coordinates: prefer saved address, fallback to device GPS from request
+        $bLat = ($buyerAddress && $buyerAddress->latitude) ? $buyerAddress->latitude : ($request->input('buyer_latitude', 0));
+        $bLon = ($buyerAddress && $buyerAddress->longitude) ? $buyerAddress->longitude : ($request->input('buyer_longitude', 0));
+
+        $routeShape = [];
+        $durationSeconds = null;
+
+        if ($sLat && $sLon && $bLat && $bLon) {
+            $osrmUrl = "http://router.project-osrm.org/route/v1/driving/{$bLon},{$bLat};{$sLon},{$sLat}?overview=full&geometries=geojson";
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(3)->get($osrmUrl);
+                if ($response->successful()) {
+                    $json = $response->json();
+                    if (isset($json['code']) && $json['code'] === 'Ok' && !empty($json['routes'])) {
+                        $route = $json['routes'][0];
+                        $distanceKm = $route['distance'] / 1000.0;
+                        $durationSeconds = $route['duration'];
+                        if (isset($route['geometry']['coordinates'])) {
+                            foreach ($route['geometry']['coordinates'] as $coord) {
+                                $routeShape[] = [
+                                    'lat' => (float)$coord[1],
+                                    'lng' => (float)$coord[0]
+                                ];
+                            }
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // Fallback
+            }
+
+            if ($distanceKm === null) {
                 $distanceKm = $this->calculateDistance($sLat, $sLon, $bLat, $bLon);
+            }
+        }
 
+        if ($request->delivery_type === 'courier' && $shippingVehicle !== 'jemput_sendiri') {
+            if ($distanceKm !== null) {
                 $totalWeight = array_reduce($items, function ($carry, $item) {
                     return $carry + ($item['product']->weight * $item['quantity']);
                 }, 0);
 
-                $shippingCost = $this->calculateShippingCost($distanceKm, $totalWeight);
+                $shippingCost = $this->calculateShippingCost($distanceKm, $totalWeight, $shippingVehicle);
             } else {
-                $shippingCost = 15000; // Flat fallback only if no coordinates at all
+                if ($shippingVehicle === 'becak') {
+                    $shippingCost = 35000;
+                } else if ($shippingVehicle === 'pickup') {
+                    $shippingCost = 100000;
+                } else {
+                    $shippingCost = 15000;
+                }
             }
         }
         $discount = 0;
@@ -425,7 +469,7 @@ class TransactionControllerApi extends Controller
             }
         }
 
-        $grandTotal = max(0, $totalPrice + $serviceFee + $shippingCost + $adminFee - $discount);
+        $grandTotal = max(0, $totalPrice + $shippingCost + $adminFee - $discount);
 
         return response()->json([
             'status' => 'success',
@@ -440,6 +484,13 @@ class TransactionControllerApi extends Controller
                 'seller_id' => $sellerId,
                 'voucher' => $appliedVoucher,
                 'distance_km' => $distanceKm ? round($distanceKm, 2) : null,
+                'duration_seconds' => $durationSeconds ? (int)$durationSeconds : null,
+                'route_shape' => $routeShape,
+                'shipping_vehicle' => $shippingVehicle,
+                'seller_latitude' => $sLat ? (float)$sLat : null,
+                'seller_longitude' => $sLon ? (float)$sLon : null,
+                'buyer_latitude' => $bLat ? (float)$bLat : null,
+                'buyer_longitude' => $bLon ? (float)$bLon : null,
             ]
         ]);
     }
@@ -457,6 +508,7 @@ class TransactionControllerApi extends Controller
             'payment_method_id' => 'required|exists:payment_methods,id',
             'voucher_code' => 'nullable|string',
             'delivery_type' => 'required|in:pickup,courier',
+            'shipping_vehicle' => 'nullable|string|in:motor,becak,pickup,jemput_sendiri',
         ]);
 
         if ($validator->fails()) {
@@ -502,7 +554,14 @@ class TransactionControllerApi extends Controller
             $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
 
             $shippingCost = 0;
-            if ($request->delivery_type === 'courier') {
+            $shippingVehicle = $request->input('shipping_vehicle');
+            if ($request->delivery_type === 'pickup') {
+                $shippingVehicle = 'jemput_sendiri';
+            } else if (!$shippingVehicle) {
+                $shippingVehicle = 'motor';
+            }
+
+            if ($request->delivery_type === 'courier' && $shippingVehicle !== 'jemput_sendiri') {
                 $seller = \App\Models\User::find($sellerId);
                 $sellerAddress = $seller ? $seller->addresses()->where('is_default', true)->first() : null;
                 $sLat = $sellerAddress && $sellerAddress->latitude ? $sellerAddress->latitude : ($itemsToCheckout[0]['product']->latitude ?? 0);
@@ -513,15 +572,21 @@ class TransactionControllerApi extends Controller
                 $bLon = $address->longitude ? $address->longitude : ($request->input('buyer_longitude', 0));
 
                 if ($sLat && $sLon && $bLat && $bLon) {
-                    $distance = $this->calculateDistance($sLat, $sLon, $bLat, $bLon);
+                    $distance = $this->getRoadDistance($sLat, $sLon, $bLat, $bLon);
 
                     $totalWeight = array_reduce($itemsToCheckout, function ($carry, $item) {
                         return $carry + ($item['product']->weight * $item['quantity']);
                     }, 0);
 
-                    $shippingCost = $this->calculateShippingCost($distance, $totalWeight);
+                    $shippingCost = $this->calculateShippingCost($distance, $totalWeight, $shippingVehicle);
                 } else {
-                    $shippingCost = 15000;
+                    if ($shippingVehicle === 'becak') {
+                        $shippingCost = 35000;
+                    } else if ($shippingVehicle === 'pickup') {
+                        $shippingCost = 100000;
+                    } else {
+                        $shippingCost = 15000;
+                    }
                 }
             }
             $discount = 0;
@@ -576,7 +641,7 @@ class TransactionControllerApi extends Controller
                 }
             }
 
-            $grandTotal = max(0, $totalPrice + $serviceFee + $shippingCost + $adminFee - $discount);
+            $grandTotal = max(0, $totalPrice + $shippingCost + $adminFee - $discount);
 
             $transaction = Transaction::create([
                 'buyer_id' => $userId,
@@ -587,6 +652,7 @@ class TransactionControllerApi extends Controller
                 'shipping_cost' => $shippingCost,
                 'admin_fee' => $adminFee,
                 'delivery_type' => $request->delivery_type,
+                'shipping_vehicle' => $shippingVehicle,
                 'status' => 'waiting_payment',
                 'expires_at' => now()->addMinutes(15),
                 'payment_method' => $paymentMethod->name,
@@ -1012,6 +1078,26 @@ class TransactionControllerApi extends Controller
     }
 
     /**
+     * Calculate distance using road routing (OSRM) with Haversine fallback
+     */
+    private function getRoadDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $osrmUrl = "http://router.project-osrm.org/route/v1/driving/{$lon1},{$lat1};{$lon2},{$lat2}?overview=false";
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(3)->get($osrmUrl);
+            if ($response->successful()) {
+                $json = $response->json();
+                if (isset($json['code']) && $json['code'] === 'Ok' && !empty($json['routes'])) {
+                    return $json['routes'][0]['distance'] / 1000.0;
+                }
+            }
+        } catch (\Exception $e) {
+            // Fallback to straight-line distance
+        }
+        return $this->calculateDistance($lat1, $lon1, $lat2, $lon2);
+    }
+
+    /**
      * Calculate shipping cost using realistic tiered pricing (Indonesian courier style)
      * Base cost by distance + per-kg rate that scales with distance
      * 
@@ -1019,37 +1105,32 @@ class TransactionControllerApi extends Controller
      * @param int $totalWeightGram Total weight in grams
      * @return int Shipping cost in Rupiah
      */
-    private function calculateShippingCost($distanceKm, $totalWeightGram)
+    private function calculateShippingCost($distanceKm, $totalWeightGram, $vehicleType = 'motor')
     {
-        // Distance tiers: [baseCost, perKgRate]
-        if ($distanceKm <= 5) {
-            $baseCost = 8000;       // Sangat dekat (sekitar kampus)
-            $perKgRate = 2000;
-        } elseif ($distanceKm <= 15) {
-            $baseCost = 12000;      // Dalam kota
-            $perKgRate = 2500;
-        } elseif ($distanceKm <= 50) {
-            $baseCost = 18000;      // Antar kecamatan
-            $perKgRate = 3000;
-        } elseif ($distanceKm <= 150) {
-            $baseCost = 25000;      // Antar kota dalam provinsi
-            $perKgRate = 4000;
-        } elseif ($distanceKm <= 500) {
-            $baseCost = 35000;      // Antar provinsi dekat
-            $perKgRate = 6000;
-        } elseif ($distanceKm <= 1000) {
-            $baseCost = 50000;      // Antar provinsi jauh
-            $perKgRate = 8000;
-        } else {
-            $baseCost = 65000;      // Antar pulau (mis. Medan - Jakarta)
-            $perKgRate = 10000;
+        if ($vehicleType === 'jemput_sendiri') {
+            return 0;
         }
 
-        // Hitung berat (minimal 1 kg). Base cost sudah termasuk 1 kg pertama.
-        $weightKg = max(1, ceil($totalWeightGram / 1000));
-        $weightSurcharge = ($weightKg > 1) ? ($weightKg - 1) * $perKgRate : 0;
+        if ($vehicleType === 'becak') {
+            // Becak: Rp 25.000 (0-5 km) + Rp 3.500/km berikutnya
+            $baseCost = 25000;
+            $perKmRate = 3500;
+        } elseif ($vehicleType === 'pickup') {
+            // Pickup: Rp 80.000 (0-5 km) + Rp 5.000/km berikutnya
+            $baseCost = 80000;
+            $perKmRate = 5000;
+        } else {
+            // Motor: Rp 10.000 (0-5 km) + Rp 3.000/km berikutnya
+            $baseCost = 10000;
+            $perKmRate = 3000;
+        }
 
-        return $baseCost + $weightSurcharge;
+        if ($distanceKm <= 5) {
+            return $baseCost;
+        } else {
+            $additionalKm = $distanceKm - 5;
+            return $baseCost + ceil($additionalKm * $perKmRate);
+        }
     }
     /**
      * Check payment status (for polling)

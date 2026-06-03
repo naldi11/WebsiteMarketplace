@@ -301,6 +301,13 @@ class AdminDisputeController extends Controller
             $buyerWallet->save();
         }
 
+        // Decrement seller's pending balance
+        $sellerBalance = \App\Models\SellerBalance::where('user_id', $transaction->seller_id)->first();
+        if ($sellerBalance) {
+            $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $grossAmount);
+            $sellerBalance->save();
+        }
+
         $sellerWallet->credit(
             $netToSeller,
             'payout',
@@ -335,12 +342,22 @@ class AdminDisputeController extends Controller
     {
         $transaction = $dispute->transaction;
         $amount      = $transaction->total_amount;
+        $escrowAmount = $transaction->seller_amount;
 
         $buyerWallet = Wallet::getOrCreate($dispute->buyer_id);
 
-        if ($buyerWallet->pending_balance >= $amount) {
-            $buyerWallet->pending_balance -= $amount;
-            $buyerWallet->save();
+        if ($buyerWallet->pending_balance >= $escrowAmount) {
+            $buyerWallet->pending_balance -= $escrowAmount;
+        } else {
+            $buyerWallet->pending_balance = 0;
+        }
+        $buyerWallet->save();
+
+        // Decrement seller's pending balance
+        $sellerBalance = \App\Models\SellerBalance::where('user_id', $transaction->seller_id)->first();
+        if ($sellerBalance) {
+            $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $escrowAmount);
+            $sellerBalance->save();
         }
 
         $buyerWallet->credit(
@@ -362,11 +379,19 @@ class AdminDisputeController extends Controller
             'funds_released_at' => now(),
         ]);
 
+        // Restore stock for all items in transaction
+        foreach ($transaction->items as $item) {
+            $product = $item->product;
+            if ($product) {
+                $product->increment('stock', $item->quantity);
+            }
+        }
+
         $dispute->addLog(
             $adminId ? 'admin' : 'system',
             $adminId,
             'refund_processed',
-            "Refund Rp " . number_format($amount, 0, ',', '.') . " berhasil dikreditkan ke MeyPay Wallet pembeli",
+            "Refund Rp " . number_format($amount, 0, ',', '.') . " berhasil dikembalikan ke pembeli",
             ['amount' => $amount, 'buyer_balance_after' => $buyerWallet->balance]
         );
 

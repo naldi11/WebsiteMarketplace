@@ -241,16 +241,28 @@
                                 <span>Subtotal Produk</span>
                                 <span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
                             </div>
-                            @if($transaction->service_fee > 0)
+                            @if($transaction->shipping_cost > 0)
                                 <div class="flex justify-between text-gray-600">
-                                    <span>Biaya Layanan (10%)</span>
-                                    <span>Rp {{ number_format($transaction->service_fee, 0, ',', '.') }}</span>
+                                    <span>Ongkos Kirim</span>
+                                    <span>Rp {{ number_format($transaction->shipping_cost, 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+                            @if($transaction->admin_fee > 0)
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Biaya Admin</span>
+                                    <span>Rp {{ number_format($transaction->admin_fee, 0, ',', '.') }}</span>
                                 </div>
                             @endif
                             @if($transaction->discount_total > 0)
                                 <div class="flex justify-between text-green-600">
                                     <span>Diskon</span>
                                     <span>-Rp {{ number_format($transaction->discount_total, 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+                            @if(auth()->id() === $transaction->seller_id && $transaction->service_fee > 0)
+                                <div class="flex justify-between text-red-600">
+                                    <span>Potongan Layanan Platform (10%)</span>
+                                    <span>-Rp {{ number_format($transaction->service_fee, 0, ',', '.') }}</span>
                                 </div>
                             @endif
                             <div class="flex justify-between items-center pt-2 border-t border-gray-200 text-lg">

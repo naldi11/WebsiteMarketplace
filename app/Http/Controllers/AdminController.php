@@ -308,7 +308,9 @@ $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category'
             return back()->with('error', 'Dana hanya bisa dilepas untuk status RECEIVED. Status saat ini: ' . strtoupper($transaction->status));
         }
 
-        $sellerAmount = $transaction->seller_amount ?? $transaction->total_amount;
+        $grossSellerAmount = $transaction->seller_amount ?? $transaction->total_amount;
+        $platformFee = $transaction->service_fee ?? 0;
+        $netToSeller = $grossSellerAmount - $platformFee;
 
         // Use database transaction for atomicity
         \DB::beginTransaction();
@@ -334,21 +336,21 @@ $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category'
 
             // FIX: Jika pending balance kurang dari seller_amount, adjust dulu
             // Ini untuk handle old transactions yang dibuat sebelum sistem pending balance ada
-            if ($sellerBalance->pending_balance < $sellerAmount) {
-                \Log::warning("Pending balance insufficient for TX#{$transaction->id}. Adjusting from {$sellerBalance->pending_balance} to {$sellerAmount}");
-                $sellerBalance->pending_balance = $sellerAmount;
+            if ($sellerBalance->pending_balance < $grossSellerAmount) {
+                \Log::warning("Pending balance insufficient for TX#{$transaction->id}. Adjusting from {$sellerBalance->pending_balance} to {$grossSellerAmount}");
+                $sellerBalance->pending_balance = $grossSellerAmount;
             }
 
             // Move from pending to available
-            $sellerBalance->pending_balance -= $sellerAmount;
-            $sellerBalance->available_balance += $sellerAmount;
-            $sellerBalance->total_earnings += $sellerAmount;
+            $sellerBalance->pending_balance -= $grossSellerAmount;
+            $sellerBalance->available_balance += $netToSeller;
+            $sellerBalance->total_earnings += $netToSeller;
             $sellerBalance->save();
 
             // Record platform earnings
             \App\Models\PlatformEarning::create([
                 'transaction_id' => $transaction->id,
-                'service_fee' => $transaction->service_fee ?? 0,
+                'service_fee' => $platformFee,
                 'payment_fee' => 0,
                 'description' => 'Biaya layanan dari transaksi #' . $transaction->id,
             ]);
@@ -367,13 +369,13 @@ $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category'
                 $transaction->id,
                 'completed',
                 'Transaksi Selesai',
-                'Dana Rp ' . number_format($sellerAmount, 0, ',', '.') . ' telah diteruskan ke penjual',
+                'Dana Rp ' . number_format($netToSeller, 0, ',', '.') . ' (setelah dipotong 10% platform fee) telah diteruskan ke penjual',
                 'admin',
                 auth()->id()
             );
 
             \DB::commit();
-            return back()->with('success', 'Dana Rp ' . number_format($sellerAmount, 0, ',', '.') . ' dilepas ke Penjual. Transaksi Selesai.');
+            return back()->with('success', 'Dana Rp ' . number_format($netToSeller, 0, ',', '.') . ' dilepas ke Penjual (setelah potongan 10% platform fee). Transaksi Selesai.');
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Release funds error: ' . $e->getMessage());

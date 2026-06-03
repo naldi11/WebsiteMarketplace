@@ -125,6 +125,22 @@ class DisputeControllerApi extends Controller
     }
 
     // ============================================================
+    // SELLER: Daftar semua dispute milik penjual
+    // GET /api/seller/disputes
+    // ============================================================
+    public function sellerIndex(Request $request)
+    {
+        $user = $request->user();
+        
+        $disputes = Dispute::with(['transaction', 'buyer', 'logs'])
+            ->where('seller_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['status' => 'success', 'data' => $disputes]);
+    }
+
+    // ============================================================
     // ADMIN: Daftar semua dispute aktif
     // GET /api/admin/disputes
     // ============================================================
@@ -308,6 +324,7 @@ class DisputeControllerApi extends Controller
 
             $transaction = $locked->transaction;
             $amount      = $transaction->total_amount;
+            $escrowAmount = $transaction->seller_amount;
 
             // Get-or-create wallets, then lock them
             $buyerWalletId  = \App\Models\Wallet::getOrCreate($locked->buyer_id)->id;
@@ -317,9 +334,18 @@ class DisputeControllerApi extends Controller
             $sellerWallet = \App\Models\Wallet::lockForUpdate()->findOrFail($sellerWalletId);
 
             // Release escrow from buyer pending balance
-            if ($buyerWallet->pending_balance >= $amount) {
-                $buyerWallet->pending_balance -= $amount;
-                $buyerWallet->save();
+            if ($buyerWallet->pending_balance >= $escrowAmount) {
+                $buyerWallet->pending_balance -= $escrowAmount;
+            } else {
+                $buyerWallet->pending_balance = 0;
+            }
+            $buyerWallet->save();
+
+            // Decrement seller's pending balance
+            $sellerBalance = \App\Models\SellerBalance::where('user_id', $transaction->seller_id)->first();
+            if ($sellerBalance) {
+                $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $escrowAmount);
+                $sellerBalance->save();
             }
 
             // Credit refund to buyer wallet
@@ -334,6 +360,14 @@ class DisputeControllerApi extends Controller
             // Mark as refunded
             $locked->update(['status' => 'refunded']);
             $transaction->update(['status' => 'disputed_refunded', 'buyer_can_rate' => false]);
+
+            // Restore stock for all items in transaction
+            foreach ($transaction->items as $item) {
+                $product = $item->product;
+                if ($product) {
+                    $product->increment('stock', $item->quantity);
+                }
+            }
 
             $locked->addLog('system', null, 'refunded',
                 "Dana Rp " . number_format($amount, 0, ',', '.') . " dikembalikan ke pembeli"

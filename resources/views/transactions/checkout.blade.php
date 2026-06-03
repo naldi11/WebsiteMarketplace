@@ -284,10 +284,6 @@
                                         <span>- Rp {{ number_format($discountAmount, 0, ',', '.') }}</span>
                                     </div>
                                 @endif
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Biaya Layanan</span>
-                                    <span>Rp {{ number_format($serviceFee, 0, ',', '.') }}</span>
-                                </div>
                                 <div class="d-flex justify-content-between mb-2" id="adminFeeRow" style="display: none !important;">
                                     <span>Biaya Admin (Pembayaran)</span>
                                     <span id="adminFeeAmount">Rp 0</span>
