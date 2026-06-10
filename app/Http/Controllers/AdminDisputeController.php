@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Dispute;
 use App\Models\Message;
 use App\Models\Transaction;
-use App\Models\Wallet;
+use App\Models\SellerBalance;
+use App\Models\RefundRecord;
 use App\Models\PlatformEarning;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -168,15 +169,11 @@ class AdminDisputeController extends Controller
             $dispute->addLog('admin', $admin->id, 'admin_confirm_received',
                 'Admin memaksa konfirmasi penjual telah menerima kembali barang');
 
-            $this->sendAdminSystemMessage($dispute,
-                "Admin mengkonfirmasi penjual telah menerima barang. Refund sedang diproses."
-            );
-
-            // Auto trigger refund
-            $this->processRefundToBuyer($dispute, $admin->id);
+            // Inisiasi proses refund manual
+            $this->initiateRefundProcess($dispute, $admin->id);
 
             DB::commit();
-            return back()->with('success', '✅ Penerimaan barang dikonfirmasi. Refund otomatis telah diproses!');
+            return back()->with('success', '✅ Penerimaan barang berhasil dikonfirmasi. Silakan proses refund manual ke rekening pembeli!');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("AdminConfirmReceived #{$id}: " . $e->getMessage());
@@ -202,18 +199,103 @@ class AdminDisputeController extends Controller
 
         DB::beginTransaction();
         try {
-            $this->processRefundToBuyer($dispute, $admin->id);
+            // Inisiasi proses refund manual (langsung bypass pengembalian barang)
+            $this->initiateRefundProcess($dispute, $admin->id);
 
             $dispute->addLog('admin', $admin->id, 'admin_force_refund',
                 'Admin memproses refund paksa ke pembeli. Catatan: ' . ($request->admin_notes ?? '-')
             );
 
             DB::commit();
-            return back()->with('success', '✅ Refund berhasil diproses ke Wallet pembeli!');
+            return back()->with('success', '✅ Refund berhasil dicatat! Silakan lakukan transfer manual dan unggah buktinya.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("AdminForceRefund #{$id}: " . $e->getMessage());
             return back()->with('error', 'Gagal refund: ' . $e->getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // REFUND MANUAL — Admin mengunggah bukti transfer manual
+    // ─────────────────────────────────────────────────────────────
+    public function refundManual(Request $request, $id)
+    {
+        $this->checkAdmin();
+        $admin = auth()->user();
+
+        $request->validate([
+            'transfer_proof'      => 'required|file|mimes:jpeg,png,jpg,pdf|max:2048',
+            'bank_name'           => 'required|string|max:100',
+            'account_number'      => 'required|string|max:50',
+            'account_holder_name' => 'required|string|max:100',
+            'notes'               => 'nullable|string|max:500',
+        ]);
+
+        $dispute = Dispute::with('transaction')->findOrFail($id);
+
+        if ($dispute->status !== 'seller_received_back') {
+            return back()->with('error', 'Tidak bisa memproses refund manual pada status: ' . $dispute->status);
+        }
+
+        DB::beginTransaction();
+        try {
+            $proofPath = $request->file('transfer_proof')->store('refund_proofs', 'public');
+
+            // Cari RefundRecord terkait dispute ini
+            $refundRecord = RefundRecord::where('dispute_id', $dispute->id)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($refundRecord) {
+                $refundRecord->update([
+                    'bank_name'           => $request->bank_name,
+                    'account_number'      => $request->account_number,
+                    'account_holder_name' => $request->account_holder_name,
+                    'transfer_proof'      => $proofPath,
+                    'admin_id'            => $admin->id,
+                    'notes'               => $request->notes ?? $refundRecord->notes,
+                    'status'              => 'completed',
+                    'refunded_at'         => now(),
+                ]);
+            } else {
+                // Buat jika tidak ada
+                RefundRecord::create([
+                    'transaction_id'      => $dispute->transaction_id,
+                    'dispute_id'          => $dispute->id,
+                    'buyer_id'            => $dispute->buyer_id,
+                    'amount'              => $dispute->transaction->total_amount,
+                    'refund_method'       => 'bank_transfer',
+                    'bank_name'           => $request->bank_name,
+                    'account_number'      => $request->account_number,
+                    'account_holder_name' => $request->account_holder_name,
+                    'transfer_proof'      => $proofPath,
+                    'admin_id'            => $admin->id,
+                    'notes'               => $request->notes ?? "Refund dari Dispute #D{$dispute->id}",
+                    'status'              => 'completed',
+                    'refunded_at'         => now(),
+                ]);
+            }
+
+            // Update status dispute ke menunggu konfirmasi pembeli
+            $dispute->update([
+                'status'              => 'refund_transferred',
+                'admin_refund_proof'  => $proofPath,
+            ]);
+
+            $dispute->addLog('admin', $admin->id, 'admin_refund_transferred',
+                "Admin telah mentransfer dana ke rekening pembeli manual. Bank: {$request->bank_name}, No Rek: {$request->account_number}. Menunggu konfirmasi pembeli."
+            );
+
+            $this->sendAdminSystemMessage($dispute,
+                "[Admin] Bukti transfer dana refund sebesar Rp " . number_format($dispute->transaction->total_amount, 0, ',', '.') . " telah diunggah. Pembeli harap konfirmasi penerimaan dana."
+            );
+
+            DB::commit();
+            return back()->with('success', '✅ Bukti transfer berhasil diunggah. Menunggu konfirmasi pembeli.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("AdminRefundManual #{$id}: " . $e->getMessage());
+            return back()->with('error', 'Gagal memproses refund manual: ' . $e->getMessage());
         }
     }
 
@@ -293,28 +375,12 @@ class AdminDisputeController extends Controller
         $platformFee  = round($grossAmount * 0.10);
         $netToSeller  = $grossAmount - $platformFee;
 
-        $buyerWallet  = Wallet::getOrCreate($transaction->buyer_id);
-        $sellerWallet = Wallet::getOrCreate($transaction->seller_id);
-
-        if ($buyerWallet->pending_balance >= $grossAmount) {
-            $buyerWallet->pending_balance -= $grossAmount;
-            $buyerWallet->save();
-        }
-
-        // Decrement seller's pending balance
-        $sellerBalance = \App\Models\SellerBalance::where('user_id', $transaction->seller_id)->first();
-        if ($sellerBalance) {
-            $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $grossAmount);
-            $sellerBalance->save();
-        }
-
-        $sellerWallet->credit(
-            $netToSeller,
-            'payout',
-            "Penjualan #TXN-{$transaction->id} (Dispute #{$dispute->id}, potongan 10% platform)",
-            'transaction',
-            $transaction->id
-        );
+        // Release escrow via SellerBalance
+        $sellerBalance = SellerBalance::getOrCreate($transaction->seller_id);
+        $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $grossAmount);
+        $sellerBalance->available_balance += $netToSeller;
+        $sellerBalance->total_earnings += $netToSeller;
+        $sellerBalance->save();
 
         PlatformEarning::recordEarning(
             $transaction->id,
@@ -338,65 +404,57 @@ class AdminDisputeController extends Controller
         );
     }
 
-    private function processRefundToBuyer(Dispute $dispute, ?int $adminId = null)
+    private function initiateRefundProcess(Dispute $dispute, ?int $adminId = null)
     {
         $transaction = $dispute->transaction;
         $amount      = $transaction->total_amount;
         $escrowAmount = $transaction->seller_amount;
 
-        $buyerWallet = Wallet::getOrCreate($dispute->buyer_id);
-
-        if ($buyerWallet->pending_balance >= $escrowAmount) {
-            $buyerWallet->pending_balance -= $escrowAmount;
-        } else {
-            $buyerWallet->pending_balance = 0;
-        }
-        $buyerWallet->save();
-
-        // Decrement seller's pending balance
-        $sellerBalance = \App\Models\SellerBalance::where('user_id', $transaction->seller_id)->first();
+        // Release escrow dari SellerBalance
+        $sellerBalance = SellerBalance::where('user_id', $transaction->seller_id)->first();
         if ($sellerBalance) {
             $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $escrowAmount);
             $sellerBalance->save();
         }
 
-        $buyerWallet->credit(
-            $amount,
-            'refund',
-            "Refund Dispute #D{$dispute->id} — Pesanan #{$transaction->id}",
-            'dispute',
-            $dispute->id
-        );
+        // Cek jika sudah ada RefundRecord pending agar tidak duplikat
+        $exists = RefundRecord::where('dispute_id', $dispute->id)->first();
+        if (!$exists) {
+            RefundRecord::createPending(
+                transactionId: $transaction->id,
+                buyerId:       $dispute->buyer_id,
+                amount:        $amount,
+                disputeId:     $dispute->id,
+                adminId:       $adminId,
+                notes:         "Refund dari Dispute #D{$dispute->id}",
+            );
+        }
 
-        $dispute->update([
-            'status'      => 'refunded',
-            'refunded_at' => now(),
-            'resolved_at' => now(),
-        ]);
+        // Update status dispute ke seller_received_back jika belum
+        if ($dispute->status !== 'seller_received_back') {
+            $dispute->update([
+                'status'                  => 'seller_received_back',
+                'seller_received_back_at' => now(),
+            ]);
+        }
 
-        $transaction->update([
-            'status'            => 'refunded',
-            'funds_released_at' => now(),
-        ]);
-
-        // Restore stock for all items in transaction
+        // Restore stock
         foreach ($transaction->items as $item) {
-            $product = $item->product;
-            if ($product) {
-                $product->increment('stock', $item->quantity);
+            if ($item->product) {
+                $item->product->increment('stock', $item->quantity);
             }
         }
 
         $dispute->addLog(
             $adminId ? 'admin' : 'system',
             $adminId,
-            'refund_processed',
-            "Refund Rp " . number_format($amount, 0, ',', '.') . " berhasil dikembalikan ke pembeli",
-            ['amount' => $amount, 'buyer_balance_after' => $buyerWallet->balance]
+            'refund_initiated',
+            "Pengembalian barang dikonfirmasi. Dana Rp " . number_format($amount, 0, ',', '.') . " dicatat untuk refund. Menunggu admin melakukan transfer manual.",
+            ['amount' => $amount]
         );
 
         $this->sendAdminSystemMessage($dispute,
-            "Rp " . number_format($amount, 0, ',', '.') . " telah dikembalikan ke MeyPay Wallet pembeli."
+            "Refund sebesar Rp " . number_format($amount, 0, ',', '.') . " siap ditransfer secara manual oleh Admin. Harap tunggu bukti transfer."
         );
     }
 

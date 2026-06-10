@@ -50,11 +50,13 @@
                                     Masuk
                                 </button>
 
+                                {{--
                                 <div class="text-center">
                                     <span class="text-muted">Belum punya akun?</span>
                                     <a href="{{ route('register') }}" class="text-decoration-none"
                                         style="color: var(--primary-color)">Daftar</a>
                                 </div>
+                                --}}
                             </form>
                         </div>
                     </div>

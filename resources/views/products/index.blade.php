@@ -17,11 +17,12 @@
                         <p class="text-muted mb-4 lead">Jual beli barang dengan sesama mahasiswa. Aman dengan sistem escrow
                             payment.</p>
                         @auth
+                            @if(auth()->user()->role !== 'admin')
                             <a href="{{ route('products.create') }}"
                                 class="btn btn-dark text-uppercase px-4 py-3 rounded-0">Jual Sekarang</a>
+                            @endif
                         @else
-                            <a href="{{ route('register') }}" class="btn btn-dark text-uppercase px-4 py-3 rounded-0">Daftar
-                                Gratis</a>
+                            <a href="{{ route('login') }}" class="btn btn-dark text-uppercase px-4 py-3 rounded-0">Masuk</a>
                         @endauth
                     </div>
                 </div>
@@ -431,7 +432,9 @@
                         @empty
                             <div class="col-12 text-center py-5">
                                 <h4 class="text-muted">Belum ada produk</h4>
+                                @if(!auth()->check() || auth()->user()->role !== 'admin')
                                 <a href="{{ route('products.create') }}" class="btn btn-dark mt-3">Jual Sekarang</a>
+                                @endif
                             </div>
                         @endforelse
                     </div>

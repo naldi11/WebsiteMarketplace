@@ -13,7 +13,7 @@ class Dispute extends Model
         'resolved_by', 'admin_notes',
         'admin_reviewed_at', 'buyer_shipped_back_at',
         'seller_received_back_at', 'refunded_at', 'resolved_at',
-        'return_tracking_number', 'return_courier',
+        'return_tracking_number', 'return_courier', 'return_shipping_proof',
         'conversation_with_user_id',
     ];
 

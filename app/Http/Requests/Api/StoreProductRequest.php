@@ -35,6 +35,7 @@ class StoreProductRequest extends FormRequest
             'condition' => 'required|string',
             'weight' => 'required|numeric|min:1',
             'location' => 'required|string',
+            'shipping_suggestion' => 'nullable|string|in:motor,becak,pickup,jemput_sendiri',
         ];
     }
 }

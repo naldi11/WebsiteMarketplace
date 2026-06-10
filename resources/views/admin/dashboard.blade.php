@@ -49,31 +49,31 @@
                 </div>
             </div>
 
-            <!-- MeyPay Total Balance -->
+            <!-- Escrow Balance -->
             <div class="bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-2xl p-8 shadow-lg shadow-emerald-200 relative overflow-hidden group">
                 <div class="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-all">
-                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
                 <div class="relative z-10">
                     <div class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 text-white/80">
-                        <span class="w-2 h-2 bg-white/80 rounded-full"></span> MeyPay Tersedia
+                        <span class="w-2 h-2 bg-white/80 rounded-full"></span> Dana Escrow (Pending)
                     </div>
-                    <div class="text-white font-black text-3xl mb-2 tracking-tighter">Rp {{ number_format($stats['total_wallet_balance'], 0, ',', '.') }}</div>
-                    <div class="text-[9px] font-mono text-white/80 uppercase mt-4">Beredar di Dompet Pengguna</div>
+                    <div class="text-white font-black text-3xl mb-2 tracking-tighter">Rp {{ number_format($stats['total_escrow_pending'], 0, ',', '.') }}</div>
+                    <div class="text-[9px] font-mono text-white/80 uppercase mt-4">Dana Ditahan untuk Pesanan Aktif</div>
                 </div>
             </div>
 
-            <!-- MeyPay Pending/Escrow -->
+            <!-- Pending Refunds -->
             <div class="bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-2xl p-8 shadow-lg shadow-amber-200 relative overflow-hidden group">
                 <div class="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-all">
-                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-4 7h4m-4 4h4m-9 0h.01M9 12h.01"></path></svg>
                 </div>
                 <div class="relative z-10">
                     <div class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 text-white/80">
-                        <span class="w-2 h-2 bg-white/80 rounded-full"></span> MeyPay Escrow
+                        <span class="w-2 h-2 bg-white/80 rounded-full"></span> Refund Pending
                     </div>
-                    <div class="text-white font-black text-3xl mb-2 tracking-tighter">Rp {{ number_format($stats['total_wallet_pending'], 0, ',', '.') }}</div>
-                    <div class="text-[9px] font-mono text-white/80 uppercase mt-4">Dana Ditahan untuk Pesanan Aktif</div>
+                    <div class="text-white font-black text-3xl mb-2 tracking-tighter">{{ number_format($stats['pending_refunds'], 0, ',', '.') }} Kasus</div>
+                    <div class="text-[9px] font-mono text-white/80 uppercase mt-4">Pengembalian Dana Menunggu Transfer</div>
                 </div>
             </div>
 

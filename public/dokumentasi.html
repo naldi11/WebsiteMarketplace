@@ -280,7 +280,7 @@
   <div class="badges">
     <span class="badge">🌐 Admin Panel Web</span>
     <span class="badge">📱 Aplikasi Android</span>
-    <span class="badge">💳 MeyPay Wallet</span>
+    <span class="badge">💳 Transfer Bank / Escrow</span>
     <span class="badge">⚠️ Dispute & Refund</span>
     <span class="badge">💬 Real-time Chat</span>
   </div>
@@ -309,12 +309,12 @@
     <div class="toc-item"><span>&nbsp;&nbsp;1.3 Log Transaksi</span><span class="toc-num"></span></div>
     <div class="toc-item"><span>&nbsp;&nbsp;1.4 Voucher & Metode Pembayaran</span><span class="toc-num"></span></div>
     <div class="toc-item"><span>&nbsp;&nbsp;1.5 Laporan Masalah & Dispute</span><span class="toc-num"></span></div>
-    <div class="toc-item"><span>&nbsp;&nbsp;1.6 Saldo, Audit MeyPay & Pengaturan</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;1.6 Saldo, Pencatatan Refund & Pengaturan</span><span class="toc-num"></span></div>
     <div class="toc-item"><span>&nbsp;&nbsp;1.7 Notifikasi Real-time Admin</span><span class="toc-num"></span></div>
     <div class="toc-item" style="margin-top:8px;"><span>2. Aplikasi Android — Fitur & Alur</span><span class="toc-num">Halaman 5</span></div>
     <div class="toc-item"><span>&nbsp;&nbsp;2.1 Autentikasi & Keamanan</span><span class="toc-num"></span></div>
     <div class="toc-item"><span>&nbsp;&nbsp;2.2 Home, Produk & Keranjang</span><span class="toc-num"></span></div>
-    <div class="toc-item"><span>&nbsp;&nbsp;2.3 Pembayaran & MeyPay</span><span class="toc-num"></span></div>
+    <div class="toc-item"><span>&nbsp;&nbsp;2.3 Pembayaran & Escrow</span><span class="toc-num"></span></div>
     <div class="toc-item"><span>&nbsp;&nbsp;2.4 Riwayat Pesanan & Laporan Masalah</span><span class="toc-num"></span></div>
     <div class="toc-item"><span>&nbsp;&nbsp;2.5 Chat Real-time</span><span class="toc-num"></span></div>
     <div class="toc-item"><span>&nbsp;&nbsp;2.6 Dashboard Penjual</span><span class="toc-num"></span></div>
@@ -348,8 +348,8 @@
       <ul class="feature-list">
         <li>GMV Kotor (Gross Merchandise Value)</li>
         <li>Pendapatan Bersih (Service Fee)</li>
-        <li>Total Saldo MeyPay Beredar</li>
-        <li>MeyPay Escrow (Dana Ditahan)</li>
+        <li>Total Dana Escrow</li>
+        <li>Refund Pending (Dana Ditahan)</li>
         <li>Total Pengguna Aktif Platform</li>
       </ul>
     </div>
@@ -514,7 +514,7 @@ Pembeli input nama driver + plat nomor di aplikasi Android
   ↓
 Penjual konfirmasi menerima barang kembali
   ↓
-Dana OTOMATIS dikreditkan ke MeyPay Wallet pembeli
+Dana akan di-refund manual ke rekening pembeli
   ↓
 Status transaksi: disputed_refunded ✅</div>
     <div class="info-box" style="margin-top:10px;">
@@ -539,9 +539,9 @@ Status transaksi: disputed_refunded ✅</div>
       </ul>
     </div>
     <div class="card">
-      <h3><span class="badge-icon" style="background:#ccfbf1;">📋</span>Log Audit MeyPay</h3>
-      <ul class="feature-list">
-        <li>Semua transaksi dompet MeyPay seluruh pengguna</li>
+      <h3><span class="badge-icon" style="background:#ccfbf1;">📋</span>Pencatatan Refund</h3>
+      <ul>
+        <li>Daftar transaksi pengembalian dana manual ke pembeli</li>
         <li>Filter pencarian nama/email pengguna</li>
         <li>Filter tipe: topup / refund / payout / transfer</li>
         <li>Riwayat saldo sebelum dan sesudah transaksi</li>
@@ -600,7 +600,7 @@ Status transaksi: disputed_refunded ✅</div>
     <div class="icon">📱</div>
     <div>
       <h2>Aplikasi Android</h2>
-      <p>Java · Retrofit 2 · Material Design 3 · MeyPay Wallet Integration</p>
+      <p>Java · Retrofit 2 · Material Design 3 · Escrow Integration</p>
     </div>
   </div>
 
@@ -683,14 +683,14 @@ Status transaksi: disputed_refunded ✅</div>
   <!-- 2.3 Pembayaran -->
   <div class="section-header">
     <div class="section-icon" style="background:#ccfbf1;">💸</div>
-    <div><h2>2.3 Pembayaran & MeyPay Wallet</h2></div>
+    <div><h2>2.3 Pembayaran & Escrow</h2></div>
   </div>
 
   <div class="card no-break">
     <h3><span class="badge-icon" style="background:#ccfbf1;">💳</span>Metode Pembayaran yang Didukung</h3>
     <table>
       <tr><th>Metode</th><th>Alur</th><th>Verifikasi</th></tr>
-      <tr><td><strong>MeyPay Wallet</strong></td><td>Bayar langsung dari saldo MeyPay, verify PIN</td><td>Otomatis real-time</td></tr>
+      <tr><td><strong>Transfer Bank</strong></td><td>Bayar dengan transfer bank manual ke rekening admin</td><td>Verifikasi Manual oleh Admin</td></tr>
       <tr><td><strong>Transfer Bank</strong></td><td>Upload foto bukti pembayaran</td><td>Manual oleh Admin</td></tr>
       <tr><td><strong>QRIS</strong></td><td>Scan QR code yang di-generate sistem</td><td>Otomatis via gateway</td></tr>
       <tr><td><strong>Virtual Account</strong></td><td>Transfer ke nomor VA yang di-generate</td><td>Otomatis via gateway</td></tr>
@@ -700,11 +700,11 @@ Status transaksi: disputed_refunded ✅</div>
 
   <div class="grid2">
     <div class="card">
-      <h3><span class="badge-icon" style="background:#ccfbf1;">💰</span>MeyPay Wallet</h3>
-      <ul class="feature-list">
-        <li>Lihat saldo tersedia & saldo pending (escrow)</li>
-        <li>Top-up saldo MeyPay</li>
-        <li>Riwayat transaksi wallet lengkap</li>
+      <h3><span class="badge-icon" style="background:#ccfbf1;">💰</span>Escrow System</h3>
+      <ul>
+        <li>Pembayaran ditampung di Escrow</li>Lihat saldo tersedia & saldo pending (escrow)</li>
+        <li>Top-up saldo akun</li>
+        <li>Riwayat transaksi lengkap</li>
         <li>Verify PIN sebelum transaksi</li>
         <li>Dana pending = uang yang ditahan untuk pesanan aktif</li>
       </ul>
@@ -758,7 +758,7 @@ DisputeDetailActivity terbuka
   ↓
   [seller_received_back] → "Dana sedang diproses..."
   ↓
-  [refunded] → "Dana masuk MeyPay Wallet kamu ✅"</div>
+  [refunded] → "Dana di-refund ke rekening kamu ✅"</div>
   </div>
 
   <!-- 2.5 Chat -->
@@ -833,7 +833,7 @@ DisputeDetailActivity terbuka
     <div class="flow-box">PEMBELI                        PENJUAL                   ADMIN
   │                              │                          │
   ├─ Pilih produk & checkout     │                          │
-  ├─ Bayar (MeyPay/Transfer)     │                          │
+  ├─ Bayar (Transfer Bank)       │                          │
   │                              │               [Verifikasi pembayaran]
   │                       Notifikasi pesanan baru           │
   │                              ├─ Kemas produk            │
@@ -859,8 +859,8 @@ DisputeDetailActivity terbuka
   ├─ Kirim barang kembali ───────►                          │
   │                         Konfirmasi terima barang        │
   │                              │                          │
-  └─ Dana OTOMATIS masuk ◄───────┴──────────────────────────┘
-     MeyPay Wallet (100%)
+  └─ Dana di-refund ke ◄─────────┴──────────────────────────┘
+     rekening pembeli
      Status: disputed_refunded ✅</div>
   </div>
 

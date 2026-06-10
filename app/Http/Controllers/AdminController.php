@@ -44,9 +44,8 @@ class AdminController extends Controller
             'platform_profit' => (clone $transactionQuery)->where('status', 'completed')->sum('service_fee') + (clone $transactionQuery)->where('status', 'completed')->sum('admin_fee'),
             'total_users' => (clone $userQuery)->count(), 
             'escrow_funds' => \App\Models\SellerBalance::sum('available_balance') + \App\Models\SellerBalance::sum('pending_balance'),
-            'total_wallet_balance' => \App\Models\Wallet::sum('balance'),
-            'total_wallet_pending' => \App\Models\Wallet::sum('pending_balance'),
-            'wallet_tx_count' => \App\Models\WalletTransaction::count(),
+            'total_escrow_pending' => \App\Models\SellerBalance::sum('pending_balance'),
+            'pending_refunds' => \App\Models\RefundRecord::where('status', 'pending')->count(),
         ];
 
         // Composition of Transaction Statuses
@@ -219,8 +218,36 @@ $user = User::findOrFail($id);
 
     public function transactions(Request $request)
     {
-        $transactions = Transaction::with(['buyer', 'seller', 'items.product'])
-            ->latest()
+        $query = Transaction::with(['buyer', 'seller', 'items.product']);
+
+        // Filter by Status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Search Query
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                // If it is numeric, try matching ID exactly
+                if (is_numeric($search)) {
+                    $q->where('id', $search);
+                } else {
+                    $q->where('transaction_number', 'like', "%$search%");
+                }
+                
+                $q->orWhereHas('buyer', function ($bq) use ($search) {
+                    $bq->where('name', 'like', "%$search%")
+                      ->orWhere('email', 'like', "%$search%");
+                })
+                ->orWhereHas('seller', function ($sq) use ($search) {
+                    $sq->where('name', 'like', "%$search%")
+                      ->orWhere('email', 'like', "%$search%");
+                });
+            });
+        }
+
+        $transactions = $query->latest()
             ->paginate(15)
             ->withQueryString();
 
@@ -396,6 +423,7 @@ $request->validate([
             'code' => 'required|unique:payment_methods,code',
             'name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:255',
+            'account_holder_name' => 'required|string|max:255',
             'type' => 'required|in:bank_transfer,ewallet,qris,credit_card,cod',
             'icon' => 'nullable|string|max:10',
             'instructions' => 'nullable|string',
@@ -418,6 +446,7 @@ $request->validate([
             'code' => 'required|unique:payment_methods,code,' . $paymentMethod->id,
             'name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:255',
+            'account_holder_name' => 'required|string|max:255',
             'type' => 'required|in:bank_transfer,ewallet,qris,credit_card,cod',
             'icon' => 'nullable|string|max:10',
             'instructions' => 'nullable|string',
@@ -728,25 +757,55 @@ if ($adBanner->image) {
         ]);
     }
 
-    public function walletLogs(Request $request)
+    public function refundLogs(Request $request)
     {
-        $query = \App\Models\WalletTransaction::with(['wallet.user'])->latest();
-        
+        $query = \App\Models\RefundRecord::with(['buyer', 'admin', 'transaction'])->latest();
+
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('wallet.user', function($q) use ($search) {
+            $query->whereHas('buyer', function ($q) use ($search) {
                 $q->where('name', 'like', "%$search%")
                   ->orWhere('email', 'like', "%$search%");
-            })->orWhere('description', 'like', "%$search%");
+            })->orWhere('notes', 'like', "%$search%");
         }
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
         $logs = $query->paginate(20)->withQueryString();
-        
-        return view('admin.wallet_logs', compact('logs'));
+
+        return view('admin.refund_logs', compact('logs'));
+    }
+
+    public function completeRefund(Request $request, \App\Models\RefundRecord $refundRecord)
+    {
+        $request->validate([
+            'transfer_proof'      => 'required|file|mimes:jpeg,png,jpg,pdf|max:2048',
+            'bank_name'           => 'required|string|max:100',
+            'account_number'      => 'required|string|max:50',
+            'account_holder_name' => 'required|string|max:100',
+            'notes'               => 'nullable|string|max:500',
+        ]);
+
+        if ($refundRecord->status === 'completed') {
+            return back()->with('error', 'Refund ini sudah selesai diproses.');
+        }
+
+        $proofPath = $request->file('transfer_proof')->store('refund_proofs', 'public');
+
+        $refundRecord->update([
+            'bank_name'           => $request->bank_name,
+            'account_number'      => $request->account_number,
+            'account_holder_name' => $request->account_holder_name,
+            'transfer_proof'      => $proofPath,
+            'admin_id'            => auth()->id(),
+            'notes'               => $request->notes ?? $refundRecord->notes,
+            'status'              => 'completed',
+            'refunded_at'         => now(),
+        ]);
+
+        return back()->with('success', 'Refund berhasil diselesaikan! Bukti transfer tersimpan.');
     }
 
     public function printInvoice(\App\Models\Transaction $transaction)

@@ -49,16 +49,80 @@ class ProductControllerApi extends Controller
 
         // Map data to calculate effective price and distance
         $items = ($products instanceof \Illuminate\Pagination\LengthAwarePaginator) ? $products->getCollection() : $products;
-        
-        $items->transform(function ($product) use ($wishlistIds) {
+
+        $items = $items->values();
+
+        $roadDistances = [];
+        if ($request->filled('latitude') && $request->filled('longitude') && $items->isNotEmpty()) {
+            $bLat = (float)$request->latitude;
+            $bLon = (float)$request->longitude;
+
+            // Gunakan OSRM Route Service (SAMA dengan Checkout) via curl_multi concurrent
+            // Key mapping disimpan langsung bersama handle curl, dijamin akurat
+            $curlHandles = []; // array of ['key' => product_key, 'ch' => curl_handle]
+            $mh = curl_multi_init();
+
+            foreach ($items as $key => $product) {
+                $sLat = $product->latitude;
+                $sLon = $product->longitude;
+                if ($sLat && $sLon && !($sLat == $bLat && $sLon == $bLon)) {
+                    $url = "http://router.project-osrm.org/route/v1/driving/{$bLon},{$bLat};{$sLon},{$sLat}?overview=false";
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $url);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+                    curl_multi_add_handle($mh, $ch);
+                    $curlHandles[] = ['key' => $key, 'ch' => $ch];
+                }
+            }
+
+            if (!empty($curlHandles)) {
+                try {
+                    $running = null;
+                    do {
+                        $status = curl_multi_exec($mh, $running);
+                        if ($running) curl_multi_select($mh, 0.5);
+                    } while ($running > 0 && $status === CURLM_OK);
+
+                    // Key mapping langsung dari $curlHandles — tidak ada index offset
+                    foreach ($curlHandles as $info) {
+                        $body     = curl_multi_getcontent($info['ch']);
+                        $httpCode = curl_getinfo($info['ch'], CURLINFO_HTTP_CODE);
+                        curl_multi_remove_handle($mh, $info['ch']);
+                        curl_close($info['ch']);
+
+                        if ($httpCode === 200 && $body) {
+                            $json = json_decode($body, true);
+                            if (isset($json['code']) && $json['code'] === 'Ok' && !empty($json['routes'])) {
+                                $roadDistances[$info['key']] = $json['routes'][0]['distance'] / 1000.0;
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("OSRM curl_multi exception: " . $e->getMessage());
+                }
+                curl_multi_close($mh);
+            }
+        }
+
+        $items->transform(function ($product, $key) use ($wishlistIds, $roadDistances) {
             $data = $product->toArray();
             $data['effective_price'] = $product->effective_price;
             $data['has_discount'] = $product->hasDiscount();
             $data['discount_percent'] = $product->discount_percent;
 
-            // Format distance if it exists in raw query
-            if (isset($product->distance)) {
-                $data['distance'] = round($product->distance, 2);
+            // Gunakan jarak jalan raya OSRM Route (identik dengan Checkout)
+            $dist = null;
+            if (isset($roadDistances[$key])) {
+                $dist = round($roadDistances[$key], 2);
+            } elseif (isset($product->distance)) {
+                // Fallback Haversine jika OSRM gagal
+                $dist = $product->distance;
+            }
+
+            if ($dist !== null) {
+                $data['distance'] = round($dist, 2);
             }
 
             $userId = auth('sanctum')->id();
@@ -71,6 +135,12 @@ class ProductControllerApi extends Controller
 
             return $data;
         });
+
+        if ($products instanceof \Illuminate\Pagination\LengthAwarePaginator) {
+            $products->setCollection($items);
+        } else {
+            $products = $items;
+        }
 
         return response()->json([
             'status' => 'success',
@@ -139,6 +209,7 @@ class ProductControllerApi extends Controller
             'weight' => $request->weight,
             'location' => $request->location,
             'image' => $mainImagePath,
+            'shipping_suggestion' => $request->shipping_suggestion,
         ]);
 
         $isPrimary = true;
@@ -209,6 +280,7 @@ class ProductControllerApi extends Controller
             'weight' => 'sometimes|required|integer|min:1',
             'location' => 'sometimes|required|string',
             'description' => 'nullable|string',
+            'shipping_suggestion' => 'nullable|string|in:motor,becak,pickup,jemput_sendiri',
         ]);
 
         $product->update($request->only([
@@ -220,7 +292,8 @@ class ProductControllerApi extends Controller
             'condition',
             'weight',
             'location',
-            'description'
+            'description',
+            'shipping_suggestion'
         ]));
 
         $product->load('category', 'images');

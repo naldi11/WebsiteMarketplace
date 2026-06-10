@@ -28,18 +28,26 @@
     @endif
 
     {{-- ── STEPPER TAHAPAN (hanya tampil jika buyer menang / proses pengembalian) ── --}}
-    @if(in_array($dispute->status, ['buyer_won','buyer_shipping_back','seller_received_back','refunded']) && $dispute->winner === 'buyer')
+    @if(in_array($dispute->status, ['buyer_won','buyer_shipping_back','seller_received_back','refund_transferred','refunded']) && $dispute->winner === 'buyer')
     <div class="glass-card p-6 mb-8">
         <p class="text-xs font-black uppercase text-gray-500 mb-5">TAHAPAN PENGEMBALIAN BARANG — Alur Refund Pembeli</p>
         @php
             $steps = [
                 ['status' => 'buyer_won',            'label' => 'Keputusan Admin',   'icon' => '1', 'desc' => 'Admin memutuskan pembeli menang'],
-                ['status' => 'buyer_shipping_back',  'label' => 'Kirim Balik',       'icon' => '2', 'desc' => 'Pembeli input resi pengiriman balik'],
+                ['status' => 'buyer_shipping_back',  'label' => 'Kirim Balik',       'icon' => '2', 'desc' => 'Pembeli input resi & bukti kirim balik'],
                 ['status' => 'seller_received_back', 'label' => 'Penjual Konfirmasi','icon' => '3', 'desc' => 'Penjual konfirmasi terima barang'],
-                ['status' => 'refunded',              'label' => 'Refund Otomatis',   'icon' => '4', 'desc' => 'Saldo masuk ke wallet pembeli'],
+                ['status' => 'refund_transferred',   'label' => 'Transfer Manual',   'icon' => '4', 'desc' => 'Admin transfer manual & bukti diunggah'],
+                ['status' => 'refunded',             'label' => 'Selesai',           'icon' => '5', 'desc' => 'Pembeli konfirmasi dana diterima'],
             ];
             $order = array_column($steps, 'status');
             $currentIdx = array_search($dispute->status, $order);
+            if ($currentIdx === false) {
+                if ($dispute->status === 'open' || $dispute->status === 'admin_reviewing') {
+                    $currentIdx = -1;
+                } else {
+                    $currentIdx = 0;
+                }
+            }
         @endphp
         <div class="flex items-start gap-0">
             @foreach($steps as $i => $step)
@@ -62,11 +70,20 @@
             @endforeach
         </div>
 
-        @if($dispute->status === 'buyer_shipping_back')
-        <div class="mt-5 p-4 bg-purple-50 border border-purple-200 rounded-xl text-xs">
-            <p class="font-black text-purple-700 mb-1">📬 Resi Pengiriman Balik</p>
-            <p><span class="text-gray-500 font-bold">Kurir:</span> {{ $dispute->return_courier }}</p>
-            <p><span class="text-gray-500 font-bold">No. Resi:</span> {{ $dispute->return_tracking_number }}</p>
+        @if(in_array($dispute->status, ['buyer_shipping_back', 'seller_received_back', 'refund_transferred', 'refunded']) && $dispute->return_tracking_number)
+        <div class="mt-5 p-4 bg-purple-50 border border-purple-200 rounded-xl text-xs flex items-center justify-between gap-4 flex-wrap">
+            <div>
+                <p class="font-black text-purple-700 mb-2">📬 Resi Pengiriman Balik</p>
+                <p><span class="text-gray-500 font-bold">Kurir:</span> {{ $dispute->return_courier }}</p>
+                <p class="mt-1"><span class="text-gray-500 font-bold">No. Resi:</span> {{ $dispute->return_tracking_number }}</p>
+            </div>
+            @if($dispute->return_shipping_proof)
+            <div class="w-36 h-24 rounded-xl overflow-hidden border border-purple-200 shrink-0">
+                <a href="{{ Storage::url($dispute->return_shipping_proof) }}" target="_blank">
+                    <img src="{{ Storage::url($dispute->return_shipping_proof) }}" class="w-full h-full object-cover hover:scale-105 transition duration-300">
+                </a>
+            </div>
+            @endif
         </div>
         @endif
     </div>
@@ -88,6 +105,7 @@
                                 'buyer_won'            => ['bg-blue-100 text-blue-700 border-blue-400', 'PEMBELI MENANG — Tunggu Kirim Balik'],
                                 'buyer_shipping_back'  => ['bg-purple-100 text-purple-700 border-purple-400', 'BARANG DIKIRIM BALIK'],
                                 'seller_received_back' => ['bg-indigo-100 text-indigo-700 border-indigo-400', 'BARANG DITERIMA PENJUAL'],
+                                'refund_transferred'   => ['bg-pink-100 text-pink-700 border-pink-400', 'REFUND DITRANSFER — Tunggu Konfirmasi Pembeli'],
                                 'seller_won'           => ['bg-green-100 text-green-700 border-green-400', 'PENJUAL MENANG — Transaksi Selesai'],
                                 'refunded'             => ['bg-teal-100 text-teal-700 border-teal-400', 'DIREFUND — Selesai'],
                                 'closed'               => ['bg-gray-100 text-gray-600 border-gray-400', 'DITUTUP'],
@@ -237,12 +255,11 @@
                     </div>
                     @endif
 
-                    {{-- STEP 2: Putuskan Pemenang --}}
                     @if(in_array($dispute->status, ['open', 'admin_reviewing']))
                     <div class="border border-indigo-100 p-4 rounded-xl">
                         <p class="text-xs font-black uppercase text-gray-700 mb-3">Putuskan Pemenang</p>
                         <form action="{{ route('admin.disputes.resolve', $dispute->id) }}" method="POST" class="space-y-3"
-                              onsubmit="return confirm('Yakin? Keputusan tidak bisa dibatalkan!')">
+                               onsubmit="return confirm('Yakin? Keputusan tidak bisa dibatalkan!')">
                             @csrf
                             <textarea name="admin_notes" rows="2" placeholder="Alasan keputusan..."
                                 class="w-full border border-indigo-100 focus:border-indigo-400 px-3 py-2 text-xs outline-none resize-none rounded-xl transition-all bg-white/60"></textarea>
@@ -270,12 +287,90 @@
                         <p class="text-xs font-black uppercase text-indigo-700 mb-1">Admin Override</p>
                         <p class="text-[9px] text-indigo-500 mb-3">Jika penjual tidak konfirmasi dalam 3 hari, admin bisa paksa konfirmasi.</p>
                         <form action="{{ route('admin.disputes.confirmReceived', $dispute->id) }}" method="POST"
-                              onsubmit="return confirm('Konfirmasi bahwa penjual SUDAH menerima barang? Refund akan langsung diproses!')">
+                               onsubmit="return confirm('Konfirmasi bahwa penjual SUDAH menerima barang? Status akan diubah ke penerimaan barang selesai, dan admin harus melakukan transfer manual!')">
                             @csrf
                             <button class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] transition-all rounded-xl">
-                             Konfirmasi Penjual Terima Barang → Refund
+                             Konfirmasi Penjual Terima Barang
                             </button>
                         </form>
+                    </div>
+                    @endif
+
+                    {{-- FORM REFUND MANUAL DARI ADMIN --}}
+                    @if($dispute->status === 'seller_received_back')
+                    <div class="border border-purple-200 bg-purple-50 p-4 rounded-xl space-y-3">
+                        <p class="text-xs font-black uppercase text-purple-700 mb-1">📝 Proses Refund Manual</p>
+                        <p class="text-[9px] text-purple-500 mb-2">Silakan lakukan transfer manual ke rekening Pembeli, lalu unggah bukti transfer di bawah ini.</p>
+                        
+                        <form action="{{ route('admin.disputes.refundManual', $dispute->id) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                            @csrf
+                            <div>
+                                <label class="block text-[9px] font-black uppercase text-gray-500 mb-0.5">Nama Bank Penerima</label>
+                                <input type="text" name="bank_name" placeholder="Contoh: Bank BCA / Mandiri" required
+                                       class="w-full border border-gray-200 focus:border-purple-400 px-3 py-1.5 text-xs outline-none rounded-xl bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-black uppercase text-gray-500 mb-0.5">Nomor Rekening</label>
+                                <input type="text" name="account_number" placeholder="Contoh: 123456789" required
+                                       class="w-full border border-gray-200 focus:border-purple-400 px-3 py-1.5 text-xs outline-none rounded-xl bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-black uppercase text-gray-500 mb-0.5">Nama Pemilik Rekening</label>
+                                <input type="text" name="account_holder_name" placeholder="Nama pemilik rekening" required
+                                       class="w-full border border-gray-200 focus:border-purple-400 px-3 py-1.5 text-xs outline-none rounded-xl bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-black uppercase text-gray-500 mb-0.5">Bukti Transfer (Gambar)</label>
+                                <input type="file" name="transfer_proof" required accept="image/*"
+                                       class="w-full border border-gray-200 focus:border-purple-400 px-3 py-1.5 text-xs outline-none rounded-xl bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-black uppercase text-gray-500 mb-0.5">Catatan (Opsional)</label>
+                                <textarea name="notes" rows="2" placeholder="Catatan tambahan..."
+                                          class="w-full border border-gray-200 focus:border-purple-400 px-3 py-1.5 text-xs outline-none rounded-xl bg-white resize-none"></textarea>
+                            </div>
+                            <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-black uppercase text-[10px] transition-all rounded-xl shadow-md">
+                             Kirim Bukti & Konfirmasi Transfer
+                            </button>
+                        </form>
+                    </div>
+                    @endif
+
+                    {{-- TAMPILAN BUKTI TRANSFER DARI ADMIN --}}
+                    @if(in_array($dispute->status, ['refund_transferred', 'refunded']))
+                    <div class="border border-green-200 bg-green-50 p-4 rounded-xl space-y-3">
+                        <p class="text-xs font-black uppercase text-green-700 mb-1">💰 Bukti Transfer Refund Admin</p>
+                        
+                        @php
+                            $refundRec = \App\Models\RefundRecord::where('dispute_id', $dispute->id)->where('status', 'completed')->first();
+                        @endphp
+                        
+                        @if($refundRec)
+                        <div class="text-xs space-y-1 text-gray-700">
+                            <p><span class="font-bold">Nama Bank:</span> {{ $refundRec->bank_name }}</p>
+                            <p><span class="font-bold">No Rekening:</span> {{ $refundRec->account_number }}</p>
+                            <p><span class="font-bold">Pemilik:</span> {{ $refundRec->account_holder_name }}</p>
+                            <p><span class="font-bold">Waktu Transfer:</span> {{ $refundRec->refunded_at ? $refundRec->refunded_at->format('d M Y H:i') : '-' }}</p>
+                            @if($refundRec->notes)
+                            <p><span class="font-bold">Catatan:</span> {{ $refundRec->notes }}</p>
+                            @endif
+                        </div>
+                        @endif
+
+                        @if($dispute->admin_refund_proof)
+                        <div class="mt-2 rounded-xl overflow-hidden border border-green-200 max-w-full">
+                            <a href="{{ Storage::url($dispute->admin_refund_proof) }}" target="_blank" class="block text-center bg-white p-2">
+                                <img src="{{ Storage::url($dispute->admin_refund_proof) }}" class="max-h-40 mx-auto object-contain hover:scale-105 transition duration-300">
+                                <span class="text-[9px] text-gray-400 font-semibold mt-1 block">Klik untuk memperbesar</span>
+                            </a>
+                        </div>
+                        @endif
+                        
+                        @if($dispute->status === 'refund_transferred')
+                        <div class="bg-yellow-50 border border-yellow-200 p-2.5 rounded-xl text-[9px] text-yellow-800 font-semibold">
+                            ⚠️ Menunggu Pembeli mengonfirmasi penerimaan dana di aplikasi Android.
+                        </div>
+                        @endif
                     </div>
                     @endif
 
@@ -285,7 +380,7 @@
                         <p class="text-xs font-black uppercase text-red-700 mb-1">Force Refund (Bypass Barang)</p>
                         <p class="text-[9px] text-red-500 mb-3">Refund langsung tanpa menunggu pengembalian barang.</p>
                         <form action="{{ route('admin.disputes.forceRefund', $dispute->id) }}" method="POST"
-                              onsubmit="return confirm('FORCE REFUND: Proses refund LANGSUNG. Lanjutkan?')">
+                               onsubmit="return confirm('FORCE REFUND: Proses refund LANGSUNG. Lanjutkan?')">
                             @csrf
                             <input type="hidden" name="admin_notes" value="Force refund oleh admin">
                             <button class="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] transition-all rounded-xl">
@@ -305,7 +400,7 @@
                             @endif
                         </p>
                         <p class="font-black text-sm uppercase text-gray-700">
-                            @if($dispute->status === 'refunded') Refund Berhasil Diproses
+                            @if($dispute->status === 'refunded') Refund Selesai (Pembeli Konfirmasi)
                             @elseif($dispute->status === 'seller_won') Penjual Menang — Selesai
                             @else Dispute Ditutup
                             @endif
@@ -315,44 +410,9 @@
                         @endif
                     </div>
                     @endif
-                </div>
             </div>
 
-            {{-- Info Saldo --}}
-            <div class="glass-card p-5">
-                <h4 class="font-black text-xs uppercase mb-3 text-gray-500">💼 Simulasi Dana</h4>
-                @php
-                    $buyerWallet  = \App\Models\Wallet::where('user_id', $dispute->buyer_id)->first();
-                    $sellerWallet = \App\Models\Wallet::where('user_id', $dispute->seller_id)->first();
-                    $txAmount     = $dispute->transaction->total_amount ?? 0;
-                    $platformFee  = round($txAmount * 0.10);
-                    $netToSeller  = $txAmount - $platformFee;
-                @endphp
-                <div class="space-y-3 text-xs">
-                    <div class="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                        <p class="font-black text-blue-600 mb-1">Wallet Pembeli</p>
-                        <div class="grid grid-cols-2 gap-1">
-                            <span class="text-gray-500">Saldo:</span>
-                            <span class="font-bold text-right">Rp {{ number_format($buyerWallet?->balance ?? 0, 0, ',', '.') }}</span>
-                            <span class="text-gray-500">Pending:</span>
-                            <span class="font-bold text-right">Rp {{ number_format($buyerWallet?->pending_balance ?? 0, 0, ',', '.') }}</span>
-                        </div>
-                    </div>
-                    <div class="p-3 bg-orange-50 rounded-xl border border-orange-100">
-                        <p class="font-black text-orange-600 mb-1">Wallet Penjual</p>
-                        <div class="grid grid-cols-2 gap-1">
-                            <span class="text-gray-500">Saldo:</span>
-                            <span class="font-bold text-right">Rp {{ number_format($sellerWallet?->balance ?? 0, 0, ',', '.') }}</span>
-                        </div>
-                    </div>
-                    <div class="p-3 bg-white/40 rounded-xl border border-indigo-100 text-[10px]">
-                        <div class="flex justify-between"><span>Nilai TXN:</span><span class="font-bold">Rp {{ number_format($txAmount, 0, ',', '.') }}</span></div>
-                        <div class="flex justify-between text-blue-600"><span>Refund Pembeli:</span><span class="font-bold">+Rp {{ number_format($txAmount, 0, ',', '.') }}</span></div>
-                        <div class="flex justify-between text-green-600"><span>Net Penjual (90%):</span><span class="font-bold">+Rp {{ number_format($netToSeller, 0, ',', '.') }}</span></div>
-                        <div class="flex justify-between text-gray-500"><span>Fee Platform (10%):</span><span class="font-bold">Rp {{ number_format($platformFee, 0, ',', '.') }}</span></div>
-                    </div>
-                </div>
-            </div>
+
         </div>
     </div>
 

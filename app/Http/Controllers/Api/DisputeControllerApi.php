@@ -7,7 +7,8 @@ use App\Models\Dispute;
 use App\Models\DisputeLog;
 use App\Models\Message;
 use App\Models\Transaction;
-use App\Models\Wallet;
+use App\Models\SellerBalance;
+use App\Models\RefundRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -237,6 +238,7 @@ class DisputeControllerApi extends Controller
         $validator = Validator::make($request->all(), [
             'return_courier'          => 'required|string|max:100',
             'return_tracking_number'  => 'required|string|max:100',
+            'return_shipping_proof'   => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -247,10 +249,16 @@ class DisputeControllerApi extends Controller
             ->where('status', 'buyer_won')
             ->findOrFail($disputeId);
 
+        $path = null;
+        if ($request->hasFile('return_shipping_proof')) {
+            $path = $request->file('return_shipping_proof')->store('disputes/returns', 'public');
+        }
+
         $dispute->update([
             'status'                 => 'buyer_shipping_back',
             'return_courier'         => $request->return_courier,
             'return_tracking_number' => $request->return_tracking_number,
+            'return_shipping_proof'  => $path,
             'buyer_shipped_back_at'  => now(),
         ]);
 
@@ -259,6 +267,7 @@ class DisputeControllerApi extends Controller
             [
                 'courier'  => $request->return_courier,
                 'tracking' => $request->return_tracking_number,
+                'proof'    => $path,
             ]
         );
 
@@ -267,7 +276,7 @@ class DisputeControllerApi extends Controller
             "Pembeli mengirim barang kembali via {$request->return_courier}. Resi: {$request->return_tracking_number}. Penjual harap konfirmasi penerimaan."
         );
 
-        return response()->json(['status' => 'success', 'message' => 'Resi pengiriman balik berhasil disimpan.']);
+        return response()->json(['status' => 'success', 'message' => 'Resi & bukti pengiriman balik berhasil disimpan.']);
     }
 
     // ============================================================
@@ -294,18 +303,99 @@ class DisputeControllerApi extends Controller
                 'Penjual mengkonfirmasi telah menerima kembali barang dari pembeli'
             );
 
-            // Proses refund otomatis ke pembeli
-            $this->processRefundToBuyer($dispute);
+            // Bebaskan escrow dari SellerBalance
+            $transaction  = $dispute->transaction;
+            $amount       = $transaction->total_amount;
+            $escrowAmount = $transaction->seller_amount;
+
+            $sellerBalance = SellerBalance::where('user_id', $transaction->seller_id)->first();
+            if ($sellerBalance) {
+                $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $escrowAmount);
+                $sellerBalance->save();
+            }
+
+            // Restore stock
+            foreach ($transaction->items as $item) {
+                if ($item->product) {
+                    $item->product->increment('stock', $item->quantity);
+                }
+            }
+
+            // Buat RefundRecord — pencatatan detail (pending)
+            $exists = RefundRecord::where('dispute_id', $dispute->id)->first();
+            if (!$exists) {
+                RefundRecord::createPending(
+                    transactionId: $transaction->id,
+                    buyerId:       $dispute->buyer_id,
+                    amount:        $amount,
+                    disputeId:     $dispute->id,
+                    notes:         "Refund Laporan #D{$dispute->id} — Pesanan #{$transaction->id}",
+                );
+            }
+
+            $this->sendSystemMessageToChat(
+                $transaction,
+                "Penjual mengkonfirmasi penerimaan barang balik. Dana refund sebesar Rp " . number_format($amount, 0, ',', '.') . " akan diproses transfer manual oleh Admin."
+            );
 
             DB::commit();
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Penerimaan barang dikonfirmasi. Refund sedang diproses ke pembeli.',
+                'message' => 'Penerimaan barang dikonfirmasi. Admin akan memproses refund secara manual.',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("SellerConfirmReturn Error #{$disputeId}: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // ============================================================
+    // BUYER: Konfirmasi terima dana refund
+    // POST /api/disputes/{id}/buyer-confirm-refund
+    // ============================================================
+    public function buyerConfirmRefund(Request $request, $id)
+    {
+        $user = $request->user();
+
+        $dispute = Dispute::with('transaction')
+            ->where('buyer_id', $user->id)
+            ->where('status', 'refund_transferred')
+            ->findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            $dispute->update([
+                'status'      => 'refunded',
+                'refunded_at' => now(),
+                'resolved_at' => now(),
+            ]);
+
+            $dispute->transaction->update([
+                'status'            => 'disputed_refunded',
+                'buyer_can_rate'    => false,
+                'funds_released_at' => now(),
+            ]);
+
+            $dispute->addLog('buyer', $user->id, 'buyer_confirmed_refund',
+                'Pembeli mengkonfirmasi telah menerima dana refund'
+            );
+
+            $this->sendSystemMessageToChat(
+                $dispute->transaction,
+                "Pembeli mengkonfirmasi telah menerima transfer dana refund. Laporan masalah selesai."
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Konfirmasi berhasil. Laporan masalah selesai.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("BuyerConfirmRefund Error #{$id}: " . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
@@ -316,61 +406,43 @@ class DisputeControllerApi extends Controller
     private function processRefundToBuyer(Dispute $dispute)
     {
         DB::transaction(function () use ($dispute) {
-            // Lock dispute row to prevent concurrent refund
             $locked = Dispute::lockForUpdate()->find($dispute->id);
             if (!$locked || $locked->status === 'refunded') {
-                return; // Already refunded — skip
+                return;
             }
 
-            $transaction = $locked->transaction;
-            $amount      = $transaction->total_amount;
+            $transaction  = $locked->transaction;
+            $amount       = $transaction->total_amount;
             $escrowAmount = $transaction->seller_amount;
 
-            // Get-or-create wallets, then lock them
-            $buyerWalletId  = \App\Models\Wallet::getOrCreate($locked->buyer_id)->id;
-            $sellerWalletId = \App\Models\Wallet::getOrCreate($locked->seller_id)->id;
-
-            $buyerWallet  = \App\Models\Wallet::lockForUpdate()->findOrFail($buyerWalletId);
-            $sellerWallet = \App\Models\Wallet::lockForUpdate()->findOrFail($sellerWalletId);
-
-            // Release escrow from buyer pending balance
-            if ($buyerWallet->pending_balance >= $escrowAmount) {
-                $buyerWallet->pending_balance -= $escrowAmount;
-            } else {
-                $buyerWallet->pending_balance = 0;
-            }
-            $buyerWallet->save();
-
-            // Decrement seller's pending balance
-            $sellerBalance = \App\Models\SellerBalance::where('user_id', $transaction->seller_id)->first();
+            // Release escrow dari SellerBalance
+            $sellerBalance = SellerBalance::where('user_id', $transaction->seller_id)->first();
             if ($sellerBalance) {
                 $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $escrowAmount);
                 $sellerBalance->save();
             }
 
-            // Credit refund to buyer wallet
-            $buyerWallet->credit(
-                $amount,
-                'refund',
-                "Refund Laporan #D{$locked->id} — Pesanan #{$transaction->id}",
-                'dispute',
-                $locked->id
+            // Buat RefundRecord — pencatatan detail
+            RefundRecord::createPending(
+                transactionId: $transaction->id,
+                buyerId:       $locked->buyer_id,
+                amount:        $amount,
+                disputeId:     $locked->id,
+                notes:         "Refund Laporan #D{$locked->id} \u2014 Pesanan #{$transaction->id}",
             );
 
-            // Mark as refunded
             $locked->update(['status' => 'refunded']);
             $transaction->update(['status' => 'disputed_refunded', 'buyer_can_rate' => false]);
 
-            // Restore stock for all items in transaction
+            // Restore stock
             foreach ($transaction->items as $item) {
-                $product = $item->product;
-                if ($product) {
-                    $product->increment('stock', $item->quantity);
+                if ($item->product) {
+                    $item->product->increment('stock', $item->quantity);
                 }
             }
 
             $locked->addLog('system', null, 'refunded',
-                "Dana Rp " . number_format($amount, 0, ',', '.') . " dikembalikan ke pembeli"
+                "Dana Rp " . number_format($amount, 0, ',', '.') . " dicatat untuk refund ke rekening pembeli"
             );
         });
     }
@@ -381,10 +453,9 @@ class DisputeControllerApi extends Controller
     private function releaseFundsToSeller(Dispute $dispute)
     {
         DB::transaction(function () use ($dispute) {
-            // Lock dispute row to prevent concurrent release
             $locked = Dispute::lockForUpdate()->find($dispute->id);
             if (!$locked || $locked->status === 'closed') {
-                return; // Already closed — skip
+                return;
             }
 
             $transaction = $locked->transaction;
@@ -397,27 +468,12 @@ class DisputeControllerApi extends Controller
             $platformFee = round($grossAmount * $feePercent / 100);
             $netToSeller = $grossAmount - $platformFee;
 
-            // Get-or-create wallets, then lock them
-            $buyerWalletId  = \App\Models\Wallet::getOrCreate($locked->buyer_id)->id;
-            $sellerWalletId = \App\Models\Wallet::getOrCreate($locked->seller_id)->id;
-
-            $buyerWallet  = \App\Models\Wallet::lockForUpdate()->findOrFail($buyerWalletId);
-            $sellerWallet = \App\Models\Wallet::lockForUpdate()->findOrFail($sellerWalletId);
-
-            // Release escrow
-            if ($buyerWallet->pending_balance >= $grossAmount) {
-                $buyerWallet->pending_balance -= $grossAmount;
-                $buyerWallet->save();
-            }
-
-            // Credit net amount to seller
-            $sellerWallet->credit(
-                $netToSeller,
-                'payout',
-                "Penjualan Laporan #D{$locked->id} (dipotong {$feePercent}% platform)",
-                'dispute',
-                $locked->id
-            );
+            // Release escrow via SellerBalance
+            $sellerBalance = SellerBalance::getOrCreate($locked->seller_id);
+            $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $grossAmount);
+            $sellerBalance->available_balance += $netToSeller;
+            $sellerBalance->total_earnings += $netToSeller;
+            $sellerBalance->save();
 
             // Record platform fee
             \App\Models\PlatformEarning::recordEarning(
@@ -427,7 +483,6 @@ class DisputeControllerApi extends Controller
                 "{$feePercent}% service fee dari Laporan #D{$locked->id}"
             );
 
-            // Close dispute and transaction
             $locked->update(['status' => 'closed']);
             $transaction->update(['status' => 'completed']);
 

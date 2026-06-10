@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Models\PlatformEarning;
 use App\Models\Transaction;
 use App\Models\TransactionStatusLog;
-use App\Models\Wallet;
+use App\Models\SellerBalance;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -37,23 +37,16 @@ class AutoCompleteShippedOrders extends Command
                 $platformFee = round($grossAmount * 0.10);
                 $netToSeller = $grossAmount - $platformFee;
 
-                $buyerWallet  = Wallet::getOrCreate($tx->buyer_id);
-                $sellerWallet = Wallet::getOrCreate($tx->seller_id);
+                $sellerBalance = SellerBalance::getOrCreate($tx->seller_id);
 
-                // Kurangi pending_balance buyer
-                if ($buyerWallet->pending_balance >= $grossAmount) {
-                    $buyerWallet->pending_balance -= $grossAmount;
-                    $buyerWallet->save();
+                // Move from pending to available (escrow release)
+                if ($sellerBalance->pending_balance < $grossAmount) {
+                    $sellerBalance->pending_balance = $grossAmount;
                 }
-
-                // Kredit ke penjual (minus 10%)
-                $sellerWallet->credit(
-                    $netToSeller,
-                    'payout',
-                    "Auto-complete #TXN-{$tx->id} (3 hari tanpa konfirmasi, dipotong 10%)",
-                    'transaction',
-                    $tx->id
-                );
+                $sellerBalance->pending_balance -= $grossAmount;
+                $sellerBalance->available_balance += $netToSeller;
+                $sellerBalance->total_earnings += $netToSeller;
+                $sellerBalance->save();
 
                 // Catat pendapatan platform
                 PlatformEarning::recordEarning(

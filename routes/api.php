@@ -55,7 +55,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transactions/preview', [TransactionControllerApi::class, 'preview']);
     Route::post('/transactions/confirm', [TransactionControllerApi::class, 'confirm']);
     Route::get('/transactions/check-status/{id}', [TransactionControllerApi::class, 'checkPaymentStatus']);
-    Route::post('/transactions/pay-wallet/{id}', [TransactionControllerApi::class, 'payWithWallet']);
     Route::post('/transactions/{transaction}/proof', [TransactionControllerApi::class, 'uploadProof']);
     
     // Legacy / Aliases
@@ -88,6 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/disputes/{transactionId}', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'show']);
     Route::post('/disputes/{id}/buyer-ship-back', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'buyerShipBack']);
     Route::post('/disputes/{id}/seller-confirm-return', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'sellerConfirmReturn']);
+    Route::post('/disputes/{id}/buyer-confirm-refund', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'buyerConfirmRefund']);
     // Seller dispute
     Route::get('/seller/disputes', [\App\Http\Controllers\Api\DisputeControllerApi::class, 'sellerIndex']);
     // Admin dispute
@@ -113,14 +113,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vouchers/check', [\App\Http\Controllers\Api\VoucherControllerApi::class, 'check']);
     Route::post('/vouchers/{id}/claim', [\App\Http\Controllers\Api\VoucherControllerApi::class, 'claim']);
 
-    // MeyPay Wallet
-    Route::prefix('wallet')->group(function () {
-        Route::get('/info', [\App\Http\Controllers\Api\WalletControllerApi::class, 'info']);
-        Route::get('/transactions', [\App\Http\Controllers\Api\WalletControllerApi::class, 'transactions']);
-        Route::post('/topup', [\App\Http\Controllers\Api\WalletControllerApi::class, 'topup']);
-        Route::post('/verify-pin', [\App\Http\Controllers\Api\WalletControllerApi::class, 'verifyPin']);
-        Route::post('/verify-payment', [\App\Http\Controllers\Api\WalletControllerApi::class, 'verifyPayment']);
-    });
 
     // Chat System
     Route::prefix('chat')->group(function () {

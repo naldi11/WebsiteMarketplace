@@ -102,7 +102,8 @@ Route::middleware('auth')->group(function () {
 
         // Balances
         Route::get('/balances', [App\Http\Controllers\AdminController::class, 'balances'])->name('admin.balances');
-        Route::get('/wallet-logs', [App\Http\Controllers\AdminController::class, 'walletLogs'])->name('admin.wallet_logs');
+        Route::get('/refund-logs', [App\Http\Controllers\AdminController::class, 'refundLogs'])->name('admin.refund_logs');
+        Route::post('/refund-logs/{refundRecord}/complete', [App\Http\Controllers\AdminController::class, 'completeRefund'])->name('admin.refund_logs.complete');
         // Settings
         Route::get('/settings', [App\Http\Controllers\AdminController::class, 'settings'])->name('admin.settings');
         Route::post('/settings', [App\Http\Controllers\AdminController::class, 'updateSettings'])->name('admin.settings.update');
@@ -121,6 +122,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/disputes/{id}', [App\Http\Controllers\AdminDisputeController::class, 'show'])->name('admin.disputes.show');
         Route::post('/disputes/{id}/resolve', [App\Http\Controllers\AdminDisputeController::class, 'resolve'])->name('admin.disputes.resolve');
         Route::post('/disputes/{id}/force-refund', [App\Http\Controllers\AdminDisputeController::class, 'forceRefund'])->name('admin.disputes.forceRefund');
+        Route::post('/disputes/{id}/refund-manual', [App\Http\Controllers\AdminDisputeController::class, 'refundManual'])->name('admin.disputes.refundManual');
         Route::post('/disputes/{id}/reviewing', [App\Http\Controllers\AdminDisputeController::class, 'markReviewing'])->name('admin.disputes.reviewing');
         Route::post('/disputes/{id}/confirm-received', [App\Http\Controllers\AdminDisputeController::class, 'adminConfirmReceived'])->name('admin.disputes.confirmReceived');
         Route::get('/disputes/{id}/chat', [App\Http\Controllers\AdminDisputeController::class, 'viewChat'])->name('admin.disputes.chat');

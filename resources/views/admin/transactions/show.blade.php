@@ -50,18 +50,30 @@
                     <h2 class="text-xl font-bold text-slate-800">Status Pesanan</h2>
                     @php
                         $statusClasses = [
-                            'pending'           => 'badge-inactive',
+                            'waiting_payment'   => 'badge-inactive',
+                            'pending'           => 'badge-warning',
                             'paid_verified'     => 'badge-active',
                             'processing'        => 'badge-active',
                             'shipped'           => 'badge-active',
-                            'received'          => 'badge-active',
+                            'received'          => 'badge-info',
                             'completed'         => 'badge-active',
                             'cancelled'         => 'badge-danger',
                             'payment_rejected'  => 'badge-danger',
                         ];
+                        $statusLabelsDetail = [
+                            'waiting_payment'   => 'MENUNGGU BAYAR',
+                            'pending'           => 'MENUNGGU VERIFIKASI',
+                            'paid_verified'     => 'SIAP KIRIM',
+                            'processing'        => 'DIPROSES',
+                            'shipped'           => 'DIKIRIM',
+                            'received'          => 'TUNGGU RILIS',
+                            'completed'         => 'SELESAI',
+                            'payment_rejected'  => 'DITOLAK',
+                            'cancelled'         => 'DIBATALKAN',
+                        ];
                     @endphp
                     <span class="{{ $statusClasses[$transaction->status] ?? 'badge-inactive' }}">
-                        {{ strtoupper($transaction->status) }}
+                        {{ $statusLabelsDetail[$transaction->status] ?? strtoupper($transaction->status) }}
                     </span>
                 </div>
 
@@ -69,16 +81,17 @@
                 <div class="relative flex items-center justify-between">
                     @php
                         $steps = [
-                            ['id' => 'pending',    'label' => 'Menunggu Bayar', 'icon' => 'fa-wallet'],
-                            ['id' => 'paid_verified', 'label' => 'Diproses',   'icon' => 'fa-box'],
-                            ['id' => 'shipped',    'label' => 'Dikirim',       'icon' => 'fa-truck'],
-                            ['id' => 'received',   'label' => 'Diterima',      'icon' => 'fa-check-circle'],
-                            ['id' => 'completed',  'label' => 'Selesai',       'icon' => 'fa-flag-checkered'],
+                            ['id' => 'waiting_payment', 'label' => 'Pembayaran', 'icon' => 'fa-wallet'],
+                            ['id' => 'paid_verified',   'label' => 'Diproses',   'icon' => 'fa-box'],
+                            ['id' => 'shipped',         'label' => 'Dikirim',    'icon' => 'fa-truck'],
+                            ['id' => 'received',        'label' => 'Tunggu Rilis', 'icon' => 'fa-hand-holding-usd'],
+                            ['id' => 'completed',       'label' => 'Selesai',    'icon' => 'fa-flag-checkered'],
                         ];
                         $currentIndex = 0;
                         foreach($steps as $i => $step) {
                             if($transaction->status == $step['id']) $currentIndex = $i;
                         }
+                        if($transaction->status == 'pending') $currentIndex = 0;
                         if($transaction->status == 'processing' || $transaction->status == 'packed') $currentIndex = 1;
                     @endphp
                     @foreach($steps as $i => $step)
@@ -280,7 +293,7 @@
                             <form action="{{ route('admin.reject', $transaction) }}" method="POST">
                                 @csrf
                                 <div class="space-y-2">
-                                    <textarea name="note" class="w-full text-xs rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-300 rounded-xl @error('note') border-red-500 @enderror" placeholder="Alasan penolakan (misal: Bukti tidak jelas)">{{ old('note') }}</textarea>
+                                    <textarea name="note" class="w-full p-3 text-xs rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-300 rounded-xl @error('note') border-red-500 @enderror" placeholder="Alasan penolakan (misal: Bukti tidak jelas)">{{ old('note') }}</textarea>
                                     @error('note')
                                         <p class="text-[10px] text-red-600 font-medium">{{ $message }}</p>
                                     @enderror

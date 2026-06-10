@@ -98,15 +98,6 @@ class User extends Authenticatable
         return $this->hasOne(UserAddress::class)->where('is_default', true);
     }
 
-    public function wallet()
-    {
-        return $this->hasOne(Wallet::class);
-    }
-
-    public function getOrCreateWallet()
-    {
-        return Wallet::getOrCreate($this->id);
-    }
 
     public function sellerBalance()
     {

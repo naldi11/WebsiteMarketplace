@@ -24,9 +24,8 @@
                 <thead class="glass-table-header text-slate-600 font-black uppercase">
                     <tr>
                         <th class="px-8 py-6">Nama Gateway</th>
-                        <th class="px-8 py-6">Nomor Akun</th>
-                        <th class="px-8 py-6">Tipe</th>
-                        <th class="px-8 py-6">Biaya</th>
+                        <th class="px-8 py-6">Nomor Rekening</th>
+                        <th class="px-8 py-6">Pemilik Rekening</th>
                         <th class="px-8 py-6">Status</th>
                         <th class="px-8 py-6 text-right">Aksi</th>
                     </tr>
@@ -51,23 +50,9 @@
                             </span>
                         </td>
                         <td class="px-8 py-6 whitespace-nowrap">
-                            <span class="px-3 py-1 border border-indigo-100 text-[9px] font-black uppercase tracking-widest bg-slate-50 italic rounded-lg text-slate-800">
-                                {{ $pm->type_label }}
+                            <span class="text-xs text-slate-800">
+                                {{ $pm->account_holder_name ?? '-' }}
                             </span>
-                        </td>
-                        <td class="px-8 py-6 whitespace-nowrap">
-                            @if($pm->admin_fee > 0 || $pm->admin_fee_percent > 0)
-                                <div class="flex flex-col text-[10px] text-slate-800 font-black italic">
-                                    @if($pm->admin_fee > 0)
-                                        <span>IDR_{{ number_format($pm->admin_fee, 0, ',', '.') }}</span>
-                                    @endif
-                                    @if($pm->admin_fee_percent > 0)
-                                        <span class="text-slate-500">+{{ floatval($pm->admin_fee_percent) }}%</span>
-                                    @endif
-                                </div>
-                            @else
-                                <span class="text-slate-300 italic text-[10px] font-mono">GRATIS</span>
-                            @endif
                         </td>
                         <td class="px-8 py-6 whitespace-nowrap">
                             <span class="{{ $pm->is_active ? 'badge-active' : 'badge-inactive' }}">
@@ -87,7 +72,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-8 py-24 text-center">
+                        <td colspan="5" class="px-8 py-24 text-center">
                             <div class="flex flex-col items-center">
                                 <div class="w-16 h-16 border border-indigo-100 flex items-center justify-center font-black text-2xl mb-4 italic rounded-xl text-slate-400">!</div>
                                 <p class="text-xs font-black uppercase tracking-widest text-slate-400 italic">Belum Ada Metode Pembayaran</p>
@@ -139,34 +124,21 @@
                             class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-mono font-black text-lg shadow-lg">
                     </div>
 
-                    <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Tipe Pembayaran</label>
-                        <select name="type" id="pType" required
+                    <!-- Hidden fields replaced by default values -->
+                    <input type="hidden" name="type" value="bank_transfer">
+                    <input type="hidden" name="admin_fee" value="0">
+                    <input type="hidden" name="admin_fee_percent" value="0">
+
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Nama Pemilik Rekening</label>
+                        <input type="text" name="account_holder_name" id="pAccountHolderName" required placeholder="Contoh: Administrasi Market"
                             class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black uppercase italic text-sm shadow-lg">
-                            <option value="bank_transfer">Transfer Bank</option>
-                            <option value="ewallet">Dompet Digital</option>
-                            <option value="qris">QRIS</option>
-                            <option value="credit_card">Kartu Kredit</option>
-                            <option value="cod">Bayar di Tempat (COD)</option>
-                        </select>
                     </div>
 
                     <div>
                         <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Ikon</label>
                         <input type="text" name="icon" id="pIcon" placeholder="🏦" maxlength="10"
                             class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all text-center text-2xl shadow-lg">
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Biaya Tetap (IDR)</label>
-                        <input type="number" name="admin_fee" id="pAdminFee" value="0" step="0.01"
-                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black text-lg shadow-lg">
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black uppercase mb-3 tracking-widest text-slate-500">Biaya Persentase (%)</label>
-                        <input type="number" name="admin_fee_percent" id="pAdminFeePercent" value="0" step="0.01" max="100"
-                            class="w-full px-5 py-4 bg-white border border-indigo-100 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 rounded-xl outline-none transition-all font-black text-lg shadow-lg">
                     </div>
 
                     <div class="flex items-center pt-6 md:col-span-2">
@@ -222,10 +194,8 @@
         document.getElementById('pCode').value = pm.code || '';
         document.getElementById('pName').value = pm.name || '';
         document.getElementById('pAccountNumber').value = pm.account_number || '';
-        document.getElementById('pType').value = pm.type || 'bank_transfer';
+        document.getElementById('pAccountHolderName').value = pm.account_holder_name || '';
         document.getElementById('pIcon').value = pm.icon || '';
-        document.getElementById('pAdminFee').value = pm.admin_fee || 0;
-        document.getElementById('pAdminFeePercent').value = pm.admin_fee_percent || 0;
         document.getElementById('pInstructions').value = pm.instructions || '';
         document.getElementById('pIsActive').checked = (pm.is_active == 1 || pm.is_active == true);
     }

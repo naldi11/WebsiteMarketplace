@@ -102,7 +102,7 @@
                                     str_starts_with($messageText, 'Penjual telah menerima') ||
                                     str_starts_with($messageText, 'Laporan sedang ditinjau oleh admin') ||
                                     str_starts_with($messageText, 'Admin mengkonfirmasi penjual') ||
-                                    str_contains($messageText, 'telah dikembalikan ke MeyPay Wallet pembeli') ||
+                                    str_contains($messageText, 'akan di-refund ke rekening pembeli') ||
                                     str_contains($messageText, 'Catatan admin:')
                                 );
                                 $isAdmin      = (!$isSystem && str_starts_with($messageText, '[Admin]'));

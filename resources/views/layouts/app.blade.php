@@ -105,6 +105,7 @@
 
                 <!-- Mobile Cart Icon (Visible on Mobile) -->
                 @auth
+                    @if(auth()->user()->role !== 'admin')
                     <div class="d-flex d-lg-none order-2 ms-auto me-2">
                         <a href="{{ route('cart.index') }}" class="position-relative text-dark">
                             <svg class="cart" width="24" height="24" fill="currentColor">
@@ -118,6 +119,7 @@
                             @endif
                         </a>
                     </div>
+                    @endif
                 @endauth
 
                 <div class="offcanvas offcanvas-end bg-white" id="bdNavbar" tabindex="-1"
@@ -137,6 +139,7 @@
                             </li>
 
                             @auth
+                            @if(auth()->user()->role !== 'admin')
                             <li class="nav-item">
                                 <a class="nav-link me-4 text-dark {{ request()->routeIs('products.create') ? 'active' : '' }}"
                                     href="{{ route('products.create') }}">Jual Barang</a>
@@ -149,17 +152,20 @@
                                 <a class="nav-link me-4 text-dark {{ request()->routeIs('transactions.history') ? 'active' : '' }}"
                                     href="{{ route('transactions.history') }}">Riwayat</a>
                             </li>
+                            @endif
                             <li class="nav-item dropdown">
                                 <a class="nav-link me-4 text-dark dropdown-toggle link-dark" data-bs-toggle="dropdown"
                                     href="#" role="button" aria-expanded="false">Akun</a>
                                 <ul class="dropdown-menu">
                                     <li><a href="{{ route('profile.edit') }}" class="dropdown-item">Profil</a></li>
+                                    @if(auth()->user()->role !== 'admin')
                                     <li><a href="{{ route('addresses.index') }}" class="dropdown-item">Alamat</a>
                                     </li>
                                     <li><a href="{{ route('wishlist.index') }}" class="dropdown-item">Wishlist</a>
                                     </li>
                                     <li><a href="{{ route('seller.balance') }}" class="dropdown-item">Saldo Saya</a>
                                     </li>
+                                    @endif
                                     @if(auth()->user()->role === 'admin')
                                         <li>
                                             <hr class="dropdown-divider">
@@ -199,7 +205,8 @@
                             <li class="nav-item">
                                 <div class="user-items ps-5">
                                     <ul class="d-flex justify-content-end list-unstyled mb-0">
-                                        @auth
+                                         @auth
+                                            @if(auth()->user()->role !== 'admin')
                                             <li class="pe-3">
                                                 <a href="{{ route('wishlist.index') }}" title="Wishlist"
                                                     class="position-relative">
@@ -215,6 +222,7 @@
                                                     @endif
                                                 </a>
                                             </li>
+                                            @endif
                                             <li class="pe-3">
                                                 <a href="{{ route('profile.edit') }}" title="Profil">
                                                     <svg class="user" width="18" height="18" fill="currentColor">
@@ -222,6 +230,7 @@
                                                     </svg>
                                                 </a>
                                             </li>
+                                            @if(auth()->user()->role !== 'admin')
                                             <li>
                                                 <a href="{{ route('cart.index') }}" class="position-relative"
                                                     title="Keranjang">
@@ -237,15 +246,18 @@
                                                     @endif
                                                 </a>
                                             </li>
+                                            @endif
                                         @else
                                             <li class="pe-3">
                                                 <a href="{{ route('login') }}"
                                                     class="btn btn-outline-dark btn-sm text-uppercase">Masuk</a>
                                             </li>
+                                            {{--
                                             <li>
                                                 <a href="{{ route('register') }}"
                                                     class="btn btn-dark btn-sm text-uppercase">Daftar</a>
                                             </li>
+                                            --}}
                                         @endauth
                                     </ul>
                                 </div>
@@ -295,10 +307,14 @@
                         <li class="mb-2"><a href="{{ route('home') }}"
                                 class="text-muted text-decoration-none">Beranda</a></li>
                         @auth
+                            @if(auth()->user()->role !== 'admin')
                             <li class="mb-2"><a href="{{ route('products.create') }}"
                                     class="text-muted text-decoration-none">Jual Barang</a></li>
+                            @endif
+                            @if(auth()->user()->role !== 'admin')
                             <li class="mb-2"><a href="{{ route('cart.index') }}"
                                     class="text-muted text-decoration-none">Keranjang</a></li>
+                            @endif
                         @endauth
                     </ul>
                 </div>
@@ -343,6 +359,7 @@
                         class="mobile-nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Beranda</a>
                 </div>
                 @auth
+                    @if(auth()->user()->role !== 'admin')
                     <div class="mobile-nav-item">
                         <a href="{{ route('products.create') }}"
                             class="mobile-nav-link {{ request()->routeIs('products.create') ? 'active' : '' }}">Jual
@@ -356,6 +373,8 @@
                         <a href="{{ route('transactions.history') }}"
                             class="mobile-nav-link {{ request()->routeIs('transactions.history') ? 'active' : '' }}">Riwayat</a>
                     </div>
+                    @endif
+                    @if(auth()->user()->role !== 'admin')
                     <div class="mobile-nav-item">
                         <a href="{{ route('cart.index') }}"
                             class="mobile-nav-link {{ request()->routeIs('cart.index') ? 'active' : '' }}">
@@ -366,6 +385,7 @@
                             @endif
                         </a>
                     </div>
+                    @endif
 
                     <div class="mobile-nav-item mt-4 mb-2">
                         <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 1px;">Akun Saya</span>
@@ -374,6 +394,7 @@
                     <div class="mobile-nav-item">
                         <a href="{{ route('profile.edit') }}" class="mobile-nav-link">Profil</a>
                     </div>
+                    @if(auth()->user()->role !== 'admin')
                     <div class="mobile-nav-item">
                         <a href="{{ route('addresses.index') }}" class="mobile-nav-link">Alamat</a>
                     </div>
@@ -388,6 +409,7 @@
                     <div class="mobile-nav-item">
                         <a href="{{ route('seller.balance') }}" class="mobile-nav-link">Saldo Saya</a>
                     </div>
+                    @endif
 
                     @if(auth()->user()->role === 'admin')
                         <div class="mobile-nav-item">
@@ -408,7 +430,7 @@
                 @guest
                     <div class="mobile-nav-item mt-3">
                         <a href="{{ route('login') }}" class="btn btn-outline-dark w-100 mb-2">Masuk</a>
-                        <a href="{{ route('register') }}" class="btn btn-dark w-100">Daftar</a>
+                        {{-- <a href="{{ route('register') }}" class="btn btn-dark w-100">Daftar</a> --}}
                     </div>
                 @endguest
             </div>

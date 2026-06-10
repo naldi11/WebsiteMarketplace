@@ -69,9 +69,15 @@ class TransactionControllerApi extends Controller
         // Mark as seen when viewed
         $transaction->update(['buyer_seen' => true]);
 
+        // Load bank transfer details
+        $paymentMethod = PaymentMethod::where('code', $transaction->payment_method_code)->first();
+        
+        $data = $transaction->toArray();
+        $data['payment_method_detail'] = $paymentMethod;
+
         return response()->json([
             'status' => 'success',
-            'data' => $transaction
+            'data' => $data
         ]);
     }
 
@@ -359,11 +365,45 @@ class TransactionControllerApi extends Controller
 
         $shippingCost = 0;
         $distanceKm = null;
+
+        // Cek shipping_suggestion dari penjual
+        $suggestedVehicle = null;
+        $suggestionPriority = ['jemput_sendiri' => 1, 'motor' => 2, 'becak' => 3, 'pickup' => 4];
+        foreach ($items as $item) {
+            $prod = $item['product'];
+            if (!empty($prod->shipping_suggestion)) {
+                $sug = $prod->shipping_suggestion;
+                if ($suggestedVehicle === null || ($suggestionPriority[$sug] ?? 0) > ($suggestionPriority[$suggestedVehicle] ?? 0)) {
+                    $suggestedVehicle = $sug;
+                }
+            }
+        }
+
+        $totalWeight = array_reduce($items, function ($carry, $item) {
+            return $carry + ($item['product']->weight * $item['quantity']);
+        }, 0);
+        $totalWeightKg = $totalWeight / 1000.0;
+
         $shippingVehicle = $request->input('shipping_vehicle');
         if ($request->delivery_type === 'pickup') {
             $shippingVehicle = 'jemput_sendiri';
-        } else if (!$shippingVehicle) {
-            $shippingVehicle = 'motor';
+        } else {
+            if (!$shippingVehicle) {
+                if ($suggestedVehicle !== null) {
+                    $shippingVehicle = $suggestedVehicle;
+                } else {
+                    $shippingVehicle = $this->getRecommendedVehicleBackend($totalWeightKg);
+                }
+            }
+        }
+
+        // Validasi kapasitas kendaraan berdasarkan total berat
+        if ($shippingVehicle === 'motor' && $totalWeightKg > 20) {
+            $shippingVehicle = $this->getRecommendedVehicleBackend($totalWeightKg);
+        } elseif ($shippingVehicle === 'becak' && $totalWeightKg > 100) {
+            $shippingVehicle = $this->getRecommendedVehicleBackend($totalWeightKg);
+        } elseif ($shippingVehicle === 'pickup' && $totalWeightKg > 1000) {
+            $shippingVehicle = $this->getRecommendedVehicleBackend($totalWeightKg);
         }
 
         $buyerAddress = $request->filled('user_address_id') ? \App\Models\UserAddress::find($request->user_address_id) : null;
@@ -418,13 +458,8 @@ class TransactionControllerApi extends Controller
 
                 $shippingCost = $this->calculateShippingCost($distanceKm, $totalWeight, $shippingVehicle);
             } else {
-                if ($shippingVehicle === 'becak') {
-                    $shippingCost = 35000;
-                } else if ($shippingVehicle === 'pickup') {
-                    $shippingCost = 100000;
-                } else {
-                    $shippingCost = 15000;
-                }
+                // Fallback ongkir per kendaraan saat OSRM tidak tersedia (gunakan tarif base 0-5km)
+                $shippingCost = $this->calculateShippingCost(0, 0, $shippingVehicle);
             }
         }
         $discount = 0;
@@ -487,6 +522,7 @@ class TransactionControllerApi extends Controller
                 'duration_seconds' => $durationSeconds ? (int)$durationSeconds : null,
                 'route_shape' => $routeShape,
                 'shipping_vehicle' => $shippingVehicle,
+                'suggested_vehicle' => $suggestedVehicle,
                 'seller_latitude' => $sLat ? (float)$sLat : null,
                 'seller_longitude' => $sLon ? (float)$sLon : null,
                 'buyer_latitude' => $bLat ? (float)$bLat : null,
@@ -554,11 +590,45 @@ class TransactionControllerApi extends Controller
             $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
 
             $shippingCost = 0;
+
+            // Cek shipping_suggestion dari penjual
+            $suggestedVehicle = null;
+            $suggestionPriority = ['jemput_sendiri' => 1, 'motor' => 2, 'becak' => 3, 'pickup' => 4];
+            foreach ($itemsToCheckout as $item) {
+                $prod = $item['product'];
+                if (!empty($prod->shipping_suggestion)) {
+                    $sug = $prod->shipping_suggestion;
+                    if ($suggestedVehicle === null || ($suggestionPriority[$sug] ?? 0) > ($suggestionPriority[$suggestedVehicle] ?? 0)) {
+                        $suggestedVehicle = $sug;
+                    }
+                }
+            }
+
+            $totalWeight = array_reduce($itemsToCheckout, function ($carry, $item) {
+                return $carry + ($item['product']->weight * $item['quantity']);
+            }, 0);
+            $totalWeightKg = $totalWeight / 1000.0;
+
             $shippingVehicle = $request->input('shipping_vehicle');
             if ($request->delivery_type === 'pickup') {
                 $shippingVehicle = 'jemput_sendiri';
-            } else if (!$shippingVehicle) {
-                $shippingVehicle = 'motor';
+            } else {
+                if (!$shippingVehicle) {
+                    if ($suggestedVehicle !== null) {
+                        $shippingVehicle = $suggestedVehicle;
+                    } else {
+                        $shippingVehicle = $this->getRecommendedVehicleBackend($totalWeightKg);
+                    }
+                }
+            }
+
+            // Validasi kapasitas kendaraan berdasarkan total berat
+            if ($shippingVehicle === 'motor' && $totalWeightKg > 20) {
+                $shippingVehicle = $this->getRecommendedVehicleBackend($totalWeightKg);
+            } elseif ($shippingVehicle === 'becak' && $totalWeightKg > 100) {
+                $shippingVehicle = $this->getRecommendedVehicleBackend($totalWeightKg);
+            } elseif ($shippingVehicle === 'pickup' && $totalWeightKg > 1000) {
+                $shippingVehicle = $this->getRecommendedVehicleBackend($totalWeightKg);
             }
 
             if ($request->delivery_type === 'courier' && $shippingVehicle !== 'jemput_sendiri') {
@@ -580,13 +650,8 @@ class TransactionControllerApi extends Controller
 
                     $shippingCost = $this->calculateShippingCost($distance, $totalWeight, $shippingVehicle);
                 } else {
-                    if ($shippingVehicle === 'becak') {
-                        $shippingCost = 35000;
-                    } else if ($shippingVehicle === 'pickup') {
-                        $shippingCost = 100000;
-                    } else {
-                        $shippingCost = 15000;
-                    }
+                    // Fallback ongkir per kendaraan saat koordinat tidak tersedia (gunakan tarif base 0-5km)
+                    $shippingCost = $this->calculateShippingCost(0, 0, $shippingVehicle);
                 }
             }
             $discount = 0;
@@ -663,19 +728,11 @@ class TransactionControllerApi extends Controller
                 'discount_total' => $discount,
             ]);
 
-            // Generate nomor transaksi & kode VA/QR yang aman (tidak mengekspos ID)
+            // Generate nomor transaksi unik
             $txNumber = 'TXN' . strtoupper(Str::random(3)) . date('ymd') . strtoupper(Str::random(4));
-            $vaToken  = strtoupper(Str::random(16)); // Token acak 16 karakter
-            $vaDisplay = '8800' . substr(str_pad($transaction->id, 8, '0', STR_PAD_LEFT), 0, 4)
-                       . '-' . strtoupper(Str::random(4))
-                       . '-' . strtoupper(Str::random(4));
-            $qrToken  = 'MEYPAY-QR-' . strtoupper(Str::random(8)) . '-' . strtoupper(Str::random(8));
 
             $transaction->update([
                 'transaction_number' => $txNumber,
-                'meypay_va'          => $vaDisplay,
-                'meypay_va_token'    => $vaToken,
-                'meypay_qr_content'  => $qrToken,
             ]);
 
             \App\Models\TransactionStatusLog::create([
@@ -925,34 +982,23 @@ class TransactionControllerApi extends Controller
         // ============================================================
         try {
             $grossAmount = $transaction->seller_amount;
-            $feePercent = (float) optional(\App\Models\SystemSetting::where('key', 'service_fee_percent')->first())->value ?? 10;
+            $feePercent  = (float) optional(\App\Models\SystemSetting::where('key', 'service_fee_percent')->first())->value ?? 10;
             $platformFee = round($grossAmount * $feePercent / 100);
             $netToSeller = $grossAmount - $platformFee;
 
-            $buyerWallet  = \App\Models\Wallet::getOrCreate($transaction->buyer_id);
-            $sellerWallet = \App\Models\Wallet::getOrCreate($transaction->seller_id);
-
-            // Kurangi pending_balance buyer (escrow)
-            if ($buyerWallet->pending_balance >= $grossAmount) {
-                $buyerWallet->pending_balance -= $grossAmount;
-                $buyerWallet->save();
-            }
-
-            // Kredit net ke penjual
-            $sellerWallet->credit(
-                $netToSeller,
-                'payout',
-                "Penjualan #TXN-{$transaction->id} (dipotong 10% platform)",
-                'transaction',
-                $transaction->id
-            );
+            // Release escrow: pindahkan dari pending ke available di SellerBalance
+            $sellerBalance = SellerBalance::getOrCreate($transaction->seller_id);
+            $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $grossAmount);
+            $sellerBalance->available_balance += $netToSeller;
+            $sellerBalance->total_earnings += $netToSeller;
+            $sellerBalance->save();
 
             // Catat pendapatan platform
             \App\Models\PlatformEarning::recordEarning(
                 $transaction->id,
                 $platformFee,
                 0,
-                "10% service fee dari TXN #{$transaction->id}"
+                "{$feePercent}% service fee dari TXN #{$transaction->id}"
             );
 
             $transaction->update(['funds_released_at' => now(), 'status' => 'completed']);
@@ -960,7 +1006,7 @@ class TransactionControllerApi extends Controller
             \App\Models\TransactionStatusLog::create([
                 'transaction_id' => $transaction->id,
                 'status'         => 'completed',
-                'note'           => "Dana Rp " . number_format($netToSeller, 0, ',', '.') . " dilepas ke penjual (10% platform fee = Rp " . number_format($platformFee, 0, ',', '.') . ")",
+                'note'           => "Dana Rp " . number_format($netToSeller, 0, ',', '.') . " dilepas ke penjual ({$feePercent}% platform fee = Rp " . number_format($platformFee, 0, ',', '.') . ")",
                 'changed_by'     => $request->user()->id,
             ]);
 
@@ -1112,16 +1158,16 @@ class TransactionControllerApi extends Controller
         }
 
         if ($vehicleType === 'becak') {
-            // Becak: Rp 25.000 (0-5 km) + Rp 3.500/km berikutnya
-            $baseCost = 25000;
+            // Becak: Rp 40.000 (0-5 km) + Rp 3.500/km berikutnya
+            $baseCost = 40000;
             $perKmRate = 3500;
         } elseif ($vehicleType === 'pickup') {
             // Pickup: Rp 80.000 (0-5 km) + Rp 5.000/km berikutnya
             $baseCost = 80000;
             $perKmRate = 5000;
         } else {
-            // Motor: Rp 10.000 (0-5 km) + Rp 3.000/km berikutnya
-            $baseCost = 10000;
+            // Motor: Rp 15.000 (0-5 km) + Rp 3.000/km berikutnya
+            $baseCost = 15000;
             $perKmRate = 3000;
         }
 
@@ -1130,6 +1176,23 @@ class TransactionControllerApi extends Controller
         } else {
             $additionalKm = $distanceKm - 5;
             return $baseCost + ceil($additionalKm * $perKmRate);
+        }
+    }
+
+    /**
+     * Get recommended shipping vehicle based on weight capacity limits (matching Android App)
+     * Limit motor <= 20 kg, becak <= 100 kg, pickup <= 1000 kg
+     */
+    private function getRecommendedVehicleBackend($weightKg)
+    {
+        if ($weightKg <= 20) {
+            return 'motor';
+        } elseif ($weightKg <= 100) {
+            return 'becak';
+        } elseif ($weightKg <= 1000) {
+            return 'pickup';
+        } else {
+            return 'jemput_sendiri';
         }
     }
     /**
@@ -1148,77 +1211,5 @@ class TransactionControllerApi extends Controller
                 'paid_at' => $transaction->paid_at
             ]
         ]);
-    }
-
-    /**
-     * Simulate Payment using MeyPay Wallet Balance (Sandbox)
-     */
-    public function payWithWallet(Request $request, $id)
-    {
-        $transaction = Transaction::where('buyer_id', $request->user()->id)
-            ->findOrFail($id);
-
-        if ($transaction->status !== 'waiting_payment') {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Transaksi sudah dibayar atau dibatalkan.',
-            ], 400);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $wallet = \App\Models\Wallet::getOrCreate($request->user()->id);
-
-            if ($wallet->balance < $transaction->total_amount) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'Saldo MeyPay tidak mencukupi. Silakan lakukan Top Up terlebih dahulu.',
-                ], 400);
-            }
-
-            // Debit saldo & CATAT ke wallet_transactions
-            $wallet->debit(
-                $transaction->total_amount,
-                'payment',
-                'Pembayaran Pesanan ' . ($transaction->transaction_number ?? '#' . $transaction->id),
-                'transaction',
-                $transaction->id
-            );
-
-            // Pindahkan sebagian ke pending escrow (uang seller)
-            $wallet->pending_balance += $transaction->seller_amount;
-            $wallet->save();
-
-            $transaction->update([
-                'status'     => 'paid_verified',
-                'paid_at'    => now(),
-                'buyer_seen' => true,
-            ]);
-
-            \App\Models\TransactionStatusLog::create([
-                'transaction_id' => $transaction->id,
-                'status'         => 'paid_verified',
-                'note'           => 'Pembayaran MeyPay Wallet berhasil (Otomatis)',
-                'changed_by'     => $request->user()->id,
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'Pembayaran berhasil!',
-                'data'    => [
-                    'transaction_id'     => $transaction->id,
-                    'transaction_number' => $transaction->transaction_number,
-                    'total_amount'       => $transaction->total_amount,
-                    'paid_at'            => $transaction->paid_at,
-                ],
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
     }
 }

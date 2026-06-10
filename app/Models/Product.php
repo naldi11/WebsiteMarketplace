@@ -20,6 +20,7 @@ class Product extends Model
         'longitude',
         'condition',
         'weight',
+        'shipping_suggestion',
     ];
 
     protected $casts = [

@@ -4,11 +4,39 @@
 
 @section('content')
     <div class="pt-0 pb-2">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-12">
             <div>
                 <h1 class="text-4xl font-black tracking-tighter uppercase italic text-slate-800">Log Transaksi</h1>
                 <p class="text-slate-500 mt-1 font-mono text-xs uppercase tracking-widest">Aliran Pesanan Global & Kontrol Pembukuan</p>
             </div>
+
+            <form action="{{ route('admin.transactions') }}" method="GET" class="flex flex-wrap gap-2">
+                <input type="text" name="search" value="{{ request('search') }}"
+                    placeholder="Cari referensi, pembeli, penjual..."
+                    class="px-4 py-2 border border-indigo-100 rounded-xl text-xs font-bold uppercase focus:outline-none focus:border-purple-400 bg-white/60 backdrop-blur transition-all">
+
+                <select name="status" class="px-4 py-2 border border-indigo-100 rounded-xl text-xs font-black uppercase focus:outline-none focus:border-purple-400 bg-white/60 backdrop-blur transition-all">
+                    <option value="">Semua Status</option>
+                    <option value="waiting_payment"  {{ request('status') == 'waiting_payment'  ? 'selected' : '' }}>Menunggu Bayar</option>
+                    <option value="pending"          {{ request('status') == 'pending'          ? 'selected' : '' }}>Menunggu Verifikasi</option>
+                    <option value="paid_verified"    {{ request('status') == 'paid_verified'    ? 'selected' : '' }}>Siap Kirim</option>
+                    <option value="processing"       {{ request('status') == 'processing'       ? 'selected' : '' }}>Diproses</option>
+                    <option value="shipped"          {{ request('status') == 'shipped'          ? 'selected' : '' }}>Dikirim</option>
+                    <option value="received"         {{ request('status') == 'received'         ? 'selected' : '' }}>Tunggu Rilis</option>
+                    <option value="completed"        {{ request('status') == 'completed'        ? 'selected' : '' }}>Selesai</option>
+                    <option value="payment_rejected" {{ request('status') == 'payment_rejected' ? 'selected' : '' }}>Ditolak</option>
+                    <option value="cancelled"        {{ request('status') == 'cancelled'        ? 'selected' : '' }}>Dibatalkan</option>
+                </select>
+
+                <button type="submit" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 text-xs font-black uppercase rounded-xl transition-all shadow-md shadow-indigo-500/10">
+                    Filter
+                </button>
+                @if(request()->filled('search') || request()->filled('status'))
+                    <a href="{{ route('admin.transactions') }}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 text-xs font-black uppercase rounded-xl transition-all border border-slate-300 flex items-center justify-center">
+                        Reset
+                    </a>
+                @endif
+            </form>
         </div>
 
 
@@ -46,7 +74,8 @@
                                 <td class="px-8 py-6 text-center">
                                     @php
                                         $statusLabels = [
-                                            'pending'           => 'MENUNGGU BAYAR',
+                                            'waiting_payment'   => 'MENUNGGU BAYAR',
+                                            'pending'           => 'MENUNGGU VERIFIKASI',
                                             'paid_verified'     => 'SIAP KIRIM',
                                             'processing'        => 'DIPROSES',
                                             'shipped'           => 'DIKIRIM',
@@ -57,13 +86,14 @@
                                         ];
                                         $statusBadge = match($tx->status) {
                                             'completed'                     => 'badge-active',
-                                            'pending', 'received'           => 'badge-inactive',
+                                            'pending'                       => 'badge-warning',
+                                            'received'                      => 'badge-info',
                                             'payment_rejected', 'cancelled' => 'badge-danger',
                                             default                         => 'badge-inactive',
                                         };
                                     @endphp
                                     <span class="{{ $statusBadge }}">
-                                        {{ $statusLabels[$tx->status] ?? $tx->status }}
+                                        {{ $statusLabels[$tx->status] ?? strtoupper($tx->status) }}
                                     </span>
                                 </td>
                                 <td class="px-8 py-6 font-mono text-[10px] text-slate-400 uppercase">
