@@ -102,7 +102,7 @@
                             @if($log->status === 'completed')
                                 <div class="flex flex-col items-center gap-1.5">
                                     @if($log->transfer_proof)
-                                        <a href="{{ Storage::url($log->transfer_proof) }}" target="_blank" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all">
+                                        <a href="{{ Storage::url($log->transfer_proof) }}" target="_blank" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 text-slate-800 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all" style="color: #1e293b !important; background-color: #e2e8f0 !important;">
                                             👁️ Lihat Bukti
                                         </a>
                                     @endif
