@@ -117,7 +117,7 @@
                             <th class="text-right py-6 px-8 border-r border-indigo-100">Total Penjualan</th>
                             <th class="text-right py-6 px-8 border-r border-indigo-100">Biaya Layanan</th>
                             <th class="text-right py-6 px-8 border-r border-indigo-100">Dicairkan</th>
-                            <th class="text-right py-6 px-8">Saldo Bersih</th>
+                            <th class="text-right py-6 px-8">Pendapatan Kotor</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-indigo-50">
