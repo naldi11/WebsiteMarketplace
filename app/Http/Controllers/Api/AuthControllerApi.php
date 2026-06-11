@@ -34,6 +34,9 @@ class AuthControllerApi extends Controller
         if ($request->role === 'seller') {
             $rules['latitude'] = 'nullable|numeric';
             $rules['longitude'] = 'nullable|numeric';
+            $rules['bank_name'] = 'required|string|max:100';
+            $rules['bank_account_number'] = 'required|string|max:50';
+            $rules['bank_account_name'] = 'required|string|max:100';
         }
 
         $validator = Validator::make($request->all(), $rules);
@@ -55,6 +58,9 @@ class AuthControllerApi extends Controller
             'address' => null,
             'latitude' => $request->role === 'seller' ? $request->latitude : null,
             'longitude' => $request->role === 'seller' ? $request->longitude : null,
+            'bank_name' => $request->role === 'seller' ? $request->bank_name : null,
+            'bank_account_number' => $request->role === 'seller' ? $request->bank_account_number : null,
+            'bank_account_name' => $request->role === 'seller' ? $request->bank_account_name : null,
         ]);
 
         // Anti-Fraud Device Tracking & New User Voucher

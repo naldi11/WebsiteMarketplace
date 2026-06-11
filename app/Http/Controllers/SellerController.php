@@ -30,7 +30,10 @@ class SellerController extends Controller
                 ->count(),
             'total_earnings' => Transaction::where('seller_id', $user->id)
                 ->where('status', 'completed')
-                ->sum('seller_amount'),
+                ->get()
+                ->sum(function($t) {
+                    return ($t->seller_amount - $t->service_fee) + $t->shipping_cost;
+                }),
             'pending_orders' => Transaction::where('seller_id', $user->id)
                 ->whereIn('status', ['paid_verified', 'shipped'])
                 ->count(),

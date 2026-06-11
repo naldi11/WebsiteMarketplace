@@ -15,11 +15,27 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $user = auth()->user();
-        $request->validate([
-            'name' => 'required',
-            'shop_name' => 'nullable|string',
+        
+        $rules = [
+            'name' => 'required|string|max:255',
             'avatar' => 'nullable|image',
             'password' => 'nullable|min:6|confirmed',
+        ];
+
+        if ($user->role === 'seller') {
+            $rules['bank_name'] = 'required|string|max:100';
+            $rules['bank_account_number'] = 'required|string|max:50';
+            $rules['bank_account_name'] = 'required|string|max:100';
+        } else {
+            $rules['bank_name'] = 'nullable|string|max:100';
+            $rules['bank_account_number'] = 'nullable|string|max:50';
+            $rules['bank_account_name'] = 'nullable|string|max:100';
+        }
+
+        $request->validate($rules, [
+            'bank_name.required' => 'Nama Bank wajib diisi untuk Penjual.',
+            'bank_account_number.required' => 'Nomor Rekening wajib diisi untuk Penjual.',
+            'bank_account_name.required' => 'Nama Pemilik Rekening wajib diisi untuk Penjual.',
         ]);
 
         if ($request->hasFile('avatar')) {
@@ -29,7 +45,9 @@ class ProfileController extends Controller
 
         $data = [
             'name' => $request->name,
-            'shop_name' => $request->shop_name,
+            'bank_name' => $request->bank_name,
+            'bank_account_number' => $request->bank_account_number,
+            'bank_account_name' => $request->bank_account_name,
         ];
 
         if ($request->filled('password')) {

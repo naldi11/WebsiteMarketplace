@@ -491,18 +491,6 @@ class TransactionControllerApi extends Controller
         $serviceFee = ceil($totalPrice * $serviceFeePercent / 100);
 
         $adminFee = 0;
-        // Not passing payment_method for preview usually, but if provided, calculate it. 
-        if ($request->filled('payment_method_id')) {
-            $pm = PaymentMethod::find($request->payment_method_id);
-            if ($pm) {
-                 if ($pm->admin_fee_percent > 0) {
-                     $adminFee += ceil($totalPrice * $pm->admin_fee_percent / 100);
-                 }
-                 if ($pm->admin_fee > 0) {
-                     $adminFee += $pm->admin_fee;
-                 }
-            }
-        }
 
         $grandTotal = max(0, $totalPrice + $shippingCost + $adminFee - $discount);
 
@@ -697,14 +685,6 @@ class TransactionControllerApi extends Controller
         }
 
             $adminFee = 0;
-            if ($paymentMethod) {
-                if ($paymentMethod->admin_fee_percent > 0) {
-                     $adminFee += ceil($totalPrice * $paymentMethod->admin_fee_percent / 100);
-                }
-                if ($paymentMethod->admin_fee > 0) {
-                     $adminFee += $paymentMethod->admin_fee;
-                }
-            }
 
             $grandTotal = max(0, $totalPrice + $shippingCost + $adminFee - $discount);
 
@@ -978,40 +958,61 @@ class TransactionControllerApi extends Controller
         ]);
 
         // ============================================================
-        // Lepas dana ke penjual dengan potongan 10% platform
+        // Buat data PayoutRecord pending (WD Manual oleh Admin)
         // ============================================================
         try {
             $grossAmount = $transaction->seller_amount;
             $feePercent  = (float) optional(\App\Models\SystemSetting::where('key', 'service_fee_percent')->first())->value ?? 10;
             $platformFee = round($grossAmount * $feePercent / 100);
-            $netToSeller = $grossAmount - $platformFee;
+            $netToSeller = ($grossAmount - $platformFee) + $transaction->shipping_cost;
 
-            // Release escrow: pindahkan dari pending ke available di SellerBalance
-            $sellerBalance = SellerBalance::getOrCreate($transaction->seller_id);
-            $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $grossAmount);
-            $sellerBalance->available_balance += $netToSeller;
-            $sellerBalance->total_earnings += $netToSeller;
-            $sellerBalance->save();
+            // Create pending payout record for the seller
+            $seller = \App\Models\User::find($transaction->seller_id);
+            $bankName = $seller->bank_name ?? 'Belum diatur';
+            $bankAccountNumber = $seller->bank_account_number ?? 'Belum diatur';
+            $bankAccountName = $seller->bank_account_name ?? 'Belum diatur';
 
-            // Catat pendapatan platform
-            \App\Models\PlatformEarning::recordEarning(
+            \App\Models\PayoutRecord::createPending(
                 $transaction->id,
-                $platformFee,
-                0,
-                "{$feePercent}% service fee dari TXN #{$transaction->id}"
+                $transaction->seller_id,
+                $netToSeller,
+                $bankName,
+                $bankAccountNumber,
+                $bankAccountName,
+                null,
+                'Payout otomatis dibuat setelah pesanan diterima oleh pembeli melalui mobile app.'
             );
 
-            $transaction->update(['funds_released_at' => now(), 'status' => 'completed']);
+            // Add Order Tracking Logs for consistency
+            \App\Models\OrderTrackingLog::addLog(
+                $transaction->id,
+                'delivered',
+                null,
+                null,
+                'system',
+                null
+            );
 
-            \App\Models\TransactionStatusLog::create([
-                'transaction_id' => $transaction->id,
-                'status'         => 'completed',
-                'note'           => "Dana Rp " . number_format($netToSeller, 0, ',', '.') . " dilepas ke penjual ({$feePercent}% platform fee = Rp " . number_format($platformFee, 0, ',', '.') . ")",
-                'changed_by'     => $request->user()->id,
-            ]);
+            \App\Models\OrderTrackingLog::addLog(
+                $transaction->id,
+                'received',
+                'Barang Diterima',
+                'Dikonfirmasi oleh pembeli via Mobile App',
+                'buyer',
+                $request->user()->id
+            );
+
+            \App\Models\OrderTrackingLog::addLog(
+                $transaction->id,
+                'received',
+                'Tunggu Rilis Dana',
+                'Menunggu Admin melakukan transfer manual (WD) senilai Rp ' . number_format($netToSeller, 0, ',', '.') . ' ke rekening Penjual.',
+                'system',
+                null
+            );
 
         } catch (\Exception $e) {
-            \Log::error("Failed to release funds for Transaction #{$transaction->id}: " . $e->getMessage());
+            \Log::error("Failed to create pending payout for Transaction #{$transaction->id}: " . $e->getMessage());
         }
 
         return response()->json([

@@ -205,15 +205,26 @@ $user = User::findOrFail($id);
 
     public function deleteUser($id)
     {
-$user = User::findOrFail($id);
+        $user = User::findOrFail($id);
 
         if ($user->id === auth()->id() || $user->role === 'admin') {
             return back()->with('error', 'Admin tidak dapat dihapus.');
         }
 
-        $user->delete();
+        \DB::beginTransaction();
+        try {
+            // Hapus log perangkat terkait untuk menghindari pelanggaran foreign key constraint
+            \App\Models\DeviceLog::where('first_user_id', $user->id)->delete();
 
-        return back()->with('success', 'User berhasil dihapus.');
+            $user->delete();
+
+            \DB::commit();
+            return back()->with('success', 'User berhasil dihapus.');
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Delete user error: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function transactions(Request $request)
@@ -269,8 +280,8 @@ $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category'
 
         $transaction->update(['status' => 'paid_verified']);
 
-        // CRITICAL FIX: Add to seller's pending balance
-        $sellerAmount = $transaction->seller_amount ?? $transaction->total_amount;
+        // CRITICAL FIX: Add to seller's pending balance (including shipping cost)
+        $sellerAmount = ($transaction->seller_amount ?? $transaction->total_amount) + ($transaction->shipping_cost ?? 0);
         $sellerBalance = \App\Models\SellerBalance::firstOrCreate(
             ['user_id' => $transaction->seller_id],
             ['pending_balance' => 0, 'available_balance' => 0]
@@ -335,7 +346,7 @@ $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category'
             return back()->with('error', 'Dana hanya bisa dilepas untuk status RECEIVED. Status saat ini: ' . strtoupper($transaction->status));
         }
 
-        $grossSellerAmount = $transaction->seller_amount ?? $transaction->total_amount;
+        $grossSellerAmount = ($transaction->seller_amount ?? $transaction->total_amount) + ($transaction->shipping_cost ?? 0);
         $platformFee = $transaction->service_fee ?? 0;
         $netToSeller = $grossSellerAmount - $platformFee;
 
@@ -368,9 +379,9 @@ $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category'
                 $sellerBalance->pending_balance = $grossSellerAmount;
             }
 
-            // Move from pending to available
-            $sellerBalance->pending_balance -= $grossSellerAmount;
-            $sellerBalance->available_balance += $netToSeller;
+            // Move from pending to total_withdrawn (since it is paid out directly in cash)
+            $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $grossSellerAmount);
+            $sellerBalance->total_withdrawn += $netToSeller;
             $sellerBalance->total_earnings += $netToSeller;
             $sellerBalance->save();
 
@@ -384,6 +395,38 @@ $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category'
 
             // Upload transfer proof
             $transferProofPath = $request->file('transfer_proof')->store('transfer_proofs', 'public');
+
+            // Find or create and mark PayoutRecord as completed
+            $payoutRecord = \App\Models\PayoutRecord::where('transaction_id', $transaction->id)->first();
+            $seller = \App\Models\User::find($transaction->seller_id);
+            $bankName = $seller->bank_name;
+            $bankAccountNumber = $seller->bank_account_number;
+            $bankAccountName = $seller->bank_account_name;
+
+            if (!$payoutRecord) {
+                $payoutRecord = \App\Models\PayoutRecord::create([
+                    'transaction_id'       => $transaction->id,
+                    'seller_id'            => $transaction->seller_id,
+                    'amount'               => $netToSeller,
+                    'bank_name'            => $bankName ?? 'Belum diatur',
+                    'account_number'       => $bankAccountNumber ?? 'Belum diatur',
+                    'account_holder_name'  => $bankAccountName ?? 'Belum diatur',
+                    'status'               => 'pending',
+                ]);
+            } else {
+                // Update detail bank di payoutRecord jika sebelumnya kosong / 'Belum diatur'
+                if ($bankName && (empty(trim($payoutRecord->bank_name)) || strtolower($payoutRecord->bank_name) === 'belum diatur')) {
+                    $payoutRecord->bank_name = $bankName;
+                }
+                if ($bankAccountNumber && (empty(trim($payoutRecord->account_number)) || strtolower($payoutRecord->account_number) === 'belum diatur')) {
+                    $payoutRecord->account_number = $bankAccountNumber;
+                }
+                if ($bankAccountName && (empty(trim($payoutRecord->account_holder_name)) || strtolower($payoutRecord->account_holder_name) === 'belum diatur')) {
+                    $payoutRecord->account_holder_name = $bankAccountName;
+                }
+                $payoutRecord->save();
+            }
+            $payoutRecord->markCompleted($transferProofPath, auth()->id(), 'WD Manual disetujui oleh Admin.');
 
             // Update transaction
             $transaction->update([
@@ -408,6 +451,30 @@ $transaction->load(['buyer', 'seller', 'items.product', 'items.product.category'
             \Log::error('Release funds error: ' . $e->getMessage());
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    // Pencatatan WD Penjual (Payout Logs)
+    public function payoutLogs(Request $request)
+    {
+        $query = \App\Models\PayoutRecord::with(['transaction', 'seller', 'admin'])->latest();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('seller', function ($sq) use ($search) {
+                    $sq->where('name', 'like', "%$search%")
+                      ->orWhere('email', 'like', "%$search%");
+                })->orWhere('notes', 'like', "%$search%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $payouts = $query->paginate(20)->withQueryString();
+
+        return view('admin.payout_logs', compact('payouts'));
     }
 
     // Payment Methods Management
@@ -806,6 +873,106 @@ if ($adBanner->image) {
         ]);
 
         return back()->with('success', 'Refund berhasil diselesaikan! Bukti transfer tersimpan.');
+    }
+
+    public function completePayout(Request $request, \App\Models\PayoutRecord $payoutRecord)
+    {
+        $request->validate([
+            'transfer_proof'      => 'required|file|mimes:jpeg,png,jpg,pdf|max:2048',
+            'bank_name'           => 'required|string|max:100',
+            'account_number'      => 'required|string|max:50',
+            'account_holder_name' => 'required|string|max:100',
+            'notes'               => 'nullable|string|max:500',
+        ], [
+            'transfer_proof.required' => 'Bukti transfer wajib diunggah.',
+            'transfer_proof.mimes' => 'Bukti transfer harus berupa gambar (JPEG/PNG) atau PDF.',
+            'transfer_proof.max' => 'Ukuran file maksimal 2MB.',
+        ]);
+
+        if ($payoutRecord->status === 'completed') {
+            return back()->with('error', 'Payout ini sudah selesai diproses.');
+        }
+
+        $transaction = \App\Models\Transaction::findOrFail($payoutRecord->transaction_id);
+
+        if ($transaction->status !== 'received') {
+            return back()->with('error', 'Dana hanya bisa dilepas untuk status RECEIVED. Status saat ini: ' . strtoupper($transaction->status));
+        }
+
+        $grossSellerAmount = ($transaction->seller_amount ?? $transaction->total_amount) + ($transaction->shipping_cost ?? 0);
+        $platformFee = $transaction->service_fee ?? 0;
+        $netToSeller = $grossSellerAmount - $platformFee;
+
+        \DB::beginTransaction();
+        try {
+            // Lock transaction and balance
+            $transaction = \App\Models\Transaction::where('id', $transaction->id)->lockForUpdate()->first();
+            $sellerBalance = \App\Models\SellerBalance::where('user_id', $transaction->seller_id)->lockForUpdate()->first();
+            if (!$sellerBalance) {
+                $sellerBalance = \App\Models\SellerBalance::create([
+                    'user_id' => $transaction->seller_id,
+                    'pending_balance' => 0,
+                    'available_balance' => 0,
+                ]);
+            }
+
+            // Adjust pending if needed (for safety/backward compatibility)
+            if ($sellerBalance->pending_balance < $grossSellerAmount) {
+                $sellerBalance->pending_balance = $grossSellerAmount;
+            }
+
+            // Move from pending to total_withdrawn
+            $sellerBalance->pending_balance = max(0, $sellerBalance->pending_balance - $grossSellerAmount);
+            $sellerBalance->total_withdrawn += $netToSeller;
+            $sellerBalance->total_earnings += $netToSeller;
+            $sellerBalance->save();
+
+            // Record platform earnings
+            \App\Models\PlatformEarning::create([
+                'transaction_id' => $transaction->id,
+                'service_fee' => $platformFee,
+                'payment_fee' => 0,
+                'description' => 'Biaya layanan dari transaksi #' . $transaction->id,
+            ]);
+
+            // Save proof
+            $proofPath = $request->file('transfer_proof')->store('payout_proofs', 'public');
+
+            // Complete payout record
+            $payoutRecord->update([
+                'bank_name'           => $request->bank_name,
+                'account_number'      => $request->account_number,
+                'account_holder_name' => $request->account_holder_name,
+                'transfer_proof'      => $proofPath,
+                'admin_id'            => auth()->id(),
+                'notes'               => $request->notes ?? $payoutRecord->notes,
+                'status'              => 'completed',
+                'paid_at'             => now(),
+            ]);
+
+            // Complete transaction
+            $transaction->update([
+                'status' => 'completed',
+                'transfer_proof' => $proofPath,
+            ]);
+
+            // Add tracking log
+            \App\Models\OrderTrackingLog::addLog(
+                $transaction->id,
+                'completed',
+                'Transaksi Selesai',
+                'Dana Rp ' . number_format($netToSeller, 0, ',', '.') . ' (setelah dipotong 10% platform fee) telah ditransfer manual oleh Admin ke rekening penjual.',
+                'admin',
+                auth()->id()
+            );
+
+            \DB::commit();
+            return back()->with('success', 'WD Manual berhasil diselesaikan! Bukti transfer tersimpan.');
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Complete payout error: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function printInvoice(\App\Models\Transaction $transaction)

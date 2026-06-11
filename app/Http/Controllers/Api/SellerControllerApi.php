@@ -85,26 +85,36 @@ class SellerControllerApi extends Controller
         $userId = $request->user()->id;
         $balance = SellerBalance::getOrCreate($userId);
 
+        $completedTransactions = Transaction::where('seller_id', $userId)
+            ->where('status', 'completed')
+            ->get();
+
+        $totalEarnings = $completedTransactions->sum(function($t) {
+            return ($t->seller_amount - $t->service_fee) + $t->shipping_cost;
+        });
+
+        $avgEarnings = $completedTransactions->count() > 0 ? $totalEarnings / $completedTransactions->count() : 0;
+
         $stats = [
-            'total_sales' => Transaction::where('seller_id', $userId)
-                ->where('status', 'completed')
-                ->count(),
-            'total_earnings' => Transaction::where('seller_id', $userId)
-                ->where('status', 'completed')
-                ->sum('seller_amount'),
+            'total_sales' => $completedTransactions->count(),
+            'total_earnings' => $totalEarnings,
             'pending_orders' => Transaction::where('seller_id', $userId)
                 ->whereIn('status', ['paid_verified', 'shipped'])
                 ->count(),
-            'avg_earnings' => Transaction::where('seller_id', $userId)
-                ->where('status', 'completed')
-                ->avg('seller_amount') ?? 0,
+            'avg_earnings' => $avgEarnings,
         ];
 
         $recentTransactions = Transaction::where('seller_id', $userId)
             ->where('status', 'completed')
             ->orderBy('updated_at', 'desc')
             ->limit(10)
-            ->get(['id', 'updated_at', 'seller_amount']);
+            ->get(['id', 'updated_at', 'seller_amount', 'service_fee', 'shipping_cost']);
+
+        // Override seller_amount with net earnings for Android display compatibility
+        $recentTransactions = $recentTransactions->map(function($t) {
+            $t->seller_amount = ($t->seller_amount - $t->service_fee) + $t->shipping_cost;
+            return $t;
+        });
 
         return response()->json([
             'status' => 'success',
@@ -179,7 +189,12 @@ class SellerControllerApi extends Controller
     {
         $userId = $request->user()->id;
 
-        $totalSales = Transaction::where('seller_id', $userId)->whereIn('status', ['completed', 'received'])->sum('seller_amount');
+        $totalSales = Transaction::where('seller_id', $userId)
+            ->whereIn('status', ['completed', 'received'])
+            ->get()
+            ->sum(function($t) {
+                return ($t->seller_amount - $t->service_fee) + $t->shipping_cost;
+            });
         $totalOrders = Transaction::where('seller_id', $userId)->count();
         $totalProducts = \App\Models\Product::where('user_id', $userId)->count();
         $conversionRate = $totalProducts > 0 ? min(100, round(($totalOrders / $totalProducts) * 10)) : 0;
@@ -187,10 +202,14 @@ class SellerControllerApi extends Controller
         $salesTrend = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i);
-            $amount = Transaction::where('seller_id', $userId)
+            $txs = Transaction::where('seller_id', $userId)
                 ->whereIn('status', ['received', 'completed'])
                 ->whereDate('created_at', $date->toDateString())
-                ->sum('seller_amount');
+                ->get();
+            
+            $amount = $txs->sum(function($t) {
+                return ($t->seller_amount - $t->service_fee) + $t->shipping_cost;
+            });
             
             $salesTrend[] = [
                 'date' => $date->translatedFormat('D'),

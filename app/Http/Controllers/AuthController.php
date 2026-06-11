@@ -18,15 +18,27 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'required|string|min:9|max:13',
             'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|in:buyer,seller',
             'terms' => 'required|accepted',
-        ], [
+        ];
+
+        if ($request->role === 'seller') {
+            $rules['bank_name'] = 'required|string|max:100';
+            $rules['bank_account_number'] = 'required|string|max:50';
+            $rules['bank_account_name'] = 'required|string|max:100';
+        }
+
+        $request->validate($rules, [
             'terms.required' => 'Anda harus menyetujui syarat dan ketentuan.',
             'terms.accepted' => 'Anda harus menyetujui syarat dan ketentuan.',
+            'bank_name.required' => 'Nama bank wajib diisi jika mendaftar sebagai penjual.',
+            'bank_account_number.required' => 'Nomor rekening wajib diisi jika mendaftar sebagai penjual.',
+            'bank_account_name.required' => 'Nama pemilik rekening wajib diisi jika mendaftar sebagai penjual.',
         ]);
 
         // Auto-add +62 prefix and clean input
@@ -49,7 +61,10 @@ class AuthController extends Controller
             'email' => $request->email,
             'phone' => $phone,
             'password' => Hash::make($request->password),
-            'role' => 'user',
+            'role' => $request->role,
+            'bank_name' => $request->role === 'seller' ? $request->bank_name : null,
+            'bank_account_number' => $request->role === 'seller' ? $request->bank_account_number : null,
+            'bank_account_name' => $request->role === 'seller' ? $request->bank_account_name : null,
         ]);
 
         Auth::login($user);

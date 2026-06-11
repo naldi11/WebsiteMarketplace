@@ -33,8 +33,8 @@ class AutoCompleteShippedOrders extends Command
 
         foreach ($transactions as $tx) {
             try {
-                $grossAmount = $tx->seller_amount;
-                $platformFee = round($grossAmount * 0.10);
+                $grossAmount = ($tx->seller_amount) + ($tx->shipping_cost ?? 0);
+                $platformFee = $tx->service_fee ?? round($tx->seller_amount * 0.10);
                 $netToSeller = $grossAmount - $platformFee;
 
                 $sellerBalance = SellerBalance::getOrCreate($tx->seller_id);

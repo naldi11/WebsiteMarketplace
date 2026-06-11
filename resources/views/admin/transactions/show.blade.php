@@ -309,6 +309,62 @@
                         <div class="p-3 bg-green-50 text-green-800 text-xs rounded-lg border border-green-100 leading-relaxed italic">
                             Barang sudah diterima buyer. Cek Bukti Penerimaan (Multimedia) sebelum melepas dana <strong>Rp {{ number_format($transaction->seller_amount, 0, ',', '.') }}</strong> ke Seller.
                         </div>
+
+                        <!-- Informasi Rekening Bank Penjual -->
+                        <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+                            <p class="text-[10px] font-mono text-gray-400 uppercase tracking-widest font-black">Rekening Tujuan Penjual</p>
+                            @php
+                                $bankName = $transaction->seller->bank_name ?? null;
+                                $bankNumber = $transaction->seller->bank_account_number ?? null;
+                                $bankHolder = $transaction->seller->bank_account_name ?? null;
+
+                                // Filter string literal "Belum diatur" atau kosong
+                                if (empty(trim($bankName)) || strtolower($bankName) === 'belum diatur') {
+                                    $bankName = null;
+                                }
+                                if (empty(trim($bankNumber)) || strtolower($bankNumber) === 'belum diatur') {
+                                    $bankNumber = null;
+                                }
+                                if (empty(trim($bankHolder)) || strtolower($bankHolder) === 'belum diatur') {
+                                    $bankHolder = null;
+                                }
+
+                                // Jika di profil kosong, coba ambil dari payoutRecord (jika bukan 'Belum diatur')
+                                if (!$bankName && $transaction->payoutRecord) {
+                                    $payoutBank = $transaction->payoutRecord->bank_name;
+                                    if ($payoutBank && strtolower($payoutBank) !== 'belum diatur') {
+                                        $bankName = $payoutBank;
+                                    }
+                                }
+                                if (!$bankNumber && $transaction->payoutRecord) {
+                                    $payoutNum = $transaction->payoutRecord->account_number;
+                                    if ($payoutNum && strtolower($payoutNum) !== 'belum diatur') {
+                                        $bankNumber = $payoutNum;
+                                    }
+                                }
+                                if (!$bankHolder && $transaction->payoutRecord) {
+                                    $payoutHolder = $transaction->payoutRecord->account_holder_name;
+                                    if ($payoutHolder && strtolower($payoutHolder) !== 'belum diatur') {
+                                        $bankHolder = $payoutHolder;
+                                    }
+                                }
+                            @endphp
+                            @if($bankName && $bankNumber && $bankHolder)
+                                <div class="space-y-1">
+                                    <div class="text-sm font-black text-slate-800 uppercase">{{ $bankName }}</div>
+                                    <div class="font-mono text-base font-black text-slate-700 tracking-wider flex items-center justify-between">
+                                        <span>{{ $bankNumber }}</span>
+                                        <button type="button" onclick="navigator.clipboard.writeText('{{ $bankNumber }}'); alert('Nomor rekening disalin!')" class="text-xs text-orange-600 hover:underline font-sans font-bold">Salin</button>
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 uppercase">A.N. {{ $bankHolder }}</div>
+                                </div>
+                            @else
+                                <div class="text-xs text-rose-600 font-bold leading-normal">
+                                    ⚠️ Penjual belum mengatur rekening bank di profilnya!
+                                </div>
+                            @endif
+                        </div>
+
                         <form action="{{ route('admin.release', $transaction) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <div class="mb-4">

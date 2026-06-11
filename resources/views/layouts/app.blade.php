@@ -158,6 +158,9 @@
                                     href="#" role="button" aria-expanded="false">Akun</a>
                                 <ul class="dropdown-menu">
                                     <li><a href="{{ route('profile.edit') }}" class="dropdown-item">Profil</a></li>
+                                    @if(auth()->user()->role === 'seller')
+                                    <li><a href="{{ route('profile.edit', ['tab' => 'seller']) }}" class="dropdown-item">Kelola Profil Penjual</a></li>
+                                    @endif
                                     @if(auth()->user()->role !== 'admin')
                                     <li><a href="{{ route('addresses.index') }}" class="dropdown-item">Alamat</a>
                                     </li>

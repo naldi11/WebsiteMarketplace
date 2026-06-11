@@ -103,6 +103,11 @@ class Transaction extends Model
         return $this->hasOne(RefundRecord::class);
     }
 
+    public function payoutRecord()
+    {
+        return $this->hasOne(PayoutRecord::class);
+    }
+
     // Helper to get primary product (fallback for views expecting single product)
     public function getProductAttribute()
     {

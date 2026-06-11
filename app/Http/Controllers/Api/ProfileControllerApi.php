@@ -30,10 +30,26 @@ class ProfileControllerApi extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'required|string|max:255|unique:users,phone,' . $user->id,
+        ];
+
+        if ($user->role === 'seller') {
+            $rules['bank_name'] = 'required|string|max:100';
+            $rules['bank_account_number'] = 'required|string|max:50';
+            $rules['bank_account_name'] = 'required|string|max:100';
+        } else {
+            $rules['bank_name'] = 'nullable|string|max:100';
+            $rules['bank_account_number'] = 'nullable|string|max:50';
+            $rules['bank_account_name'] = 'nullable|string|max:100';
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
+            'bank_name.required' => 'Nama Bank wajib diisi untuk Penjual.',
+            'bank_account_number.required' => 'Nomor Rekening wajib diisi untuk Penjual.',
+            'bank_account_name.required' => 'Nama Pemilik Rekening wajib diisi untuk Penjual.',
         ]);
 
         if ($validator->fails()) {
@@ -44,6 +60,9 @@ class ProfileControllerApi extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
+            'bank_name' => $request->bank_name,
+            'bank_account_number' => $request->bank_account_number,
+            'bank_account_name' => $request->bank_account_name,
         ]);
 
         return response()->json([

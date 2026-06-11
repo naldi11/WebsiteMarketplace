@@ -73,6 +73,9 @@ Route::middleware('auth')->group(function () {
         // User Management
         Route::get('/users', [App\Http\Controllers\AdminController::class, 'users'])->name('admin.users');
         Route::post('/users/{id}/suspend', [App\Http\Controllers\AdminController::class, 'toggleSuspendUser'])->name('admin.users.suspend');
+        Route::get('/users/{id}/delete', function () {
+            return redirect()->route('admin.users')->with('error', 'Metode tidak didukung. Penghapusan pengguna harus dilakukan melalui tombol Hapus di daftar pengguna.');
+        });
         Route::delete('/users/{id}/delete', [App\Http\Controllers\AdminController::class, 'deleteUser'])->name('admin.users.delete');
 
         Route::get('/transactions', [App\Http\Controllers\AdminController::class, 'transactions'])->name('admin.transactions');
@@ -103,6 +106,8 @@ Route::middleware('auth')->group(function () {
         // Balances
         Route::get('/balances', [App\Http\Controllers\AdminController::class, 'balances'])->name('admin.balances');
         Route::get('/refund-logs', [App\Http\Controllers\AdminController::class, 'refundLogs'])->name('admin.refund_logs');
+        Route::get('/payout-logs', [App\Http\Controllers\AdminController::class, 'payoutLogs'])->name('admin.payout_logs');
+        Route::post('/payout-logs/{payoutRecord}/complete', [App\Http\Controllers\AdminController::class, 'completePayout'])->name('admin.payout_logs.complete');
         Route::post('/refund-logs/{refundRecord}/complete', [App\Http\Controllers\AdminController::class, 'completeRefund'])->name('admin.refund_logs.complete');
         // Settings
         Route::get('/settings', [App\Http\Controllers\AdminController::class, 'settings'])->name('admin.settings');

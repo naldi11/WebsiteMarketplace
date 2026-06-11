@@ -79,6 +79,49 @@
                                     </div>
                                 </div>
 
+                                <div class="mb-3">
+                                    <label for="role" class="form-label">Daftar Sebagai</label>
+                                    <select class="form-select @error('role') is-invalid @enderror" id="role" name="role" required onchange="toggleBankSection()">
+                                        <option value="buyer" {{ old('role') === 'buyer' ? 'selected' : '' }}>Pembeli (Untuk Belanja Barang Bekas)</option>
+                                        <option value="seller" {{ old('role') === 'seller' ? 'selected' : '' }}>Penjual (Untuk Mulai Berjualan)</option>
+                                    </select>
+                                    @error('role')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <!-- Bank Account Section for Seller -->
+                                <div id="bankSection" style="display: {{ old('role') === 'seller' ? 'block' : 'none' }};" class="p-4 bg-light rounded-3 mb-3 border">
+                                    <h5 class="fw-bold text-uppercase mb-3" style="font-size: 0.85rem; color: #555;">Detail Rekening Bank (Wajib untuk Penjual)</h5>
+                                    
+                                    <div class="mb-3">
+                                        <label for="bank_name" class="form-label">Nama Bank</label>
+                                        <input type="text" class="form-control @error('bank_name') is-invalid @enderror" id="bank_name"
+                                            name="bank_name" value="{{ old('bank_name') }}" placeholder="Contoh: BCA / Mandiri / BRI">
+                                        @error('bank_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="bank_account_number" class="form-label">Nomor Rekening</label>
+                                        <input type="text" class="form-control @error('bank_account_number') is-invalid @enderror" id="bank_account_number"
+                                            name="bank_account_number" value="{{ old('bank_account_number') }}" placeholder="Contoh: 123456789">
+                                        @error('bank_account_number')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="bank_account_name" class="form-label">Nama Pemilik Rekening</label>
+                                        <input type="text" class="form-control @error('bank_account_name') is-invalid @enderror" id="bank_account_name"
+                                            name="bank_account_name" value="{{ old('bank_account_name') }}" placeholder="Sesuai rekening bank">
+                                        @error('bank_account_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+
                                 <div class="mb-4 form-check">
                                     <input type="checkbox" class="form-check-input @error('terms') is-invalid @enderror"
                                         id="terms" name="terms" {{ old('terms') ? 'checked' : '' }} required>
@@ -102,6 +145,28 @@
                                         style="color: var(--primary-color)">Masuk</a>
                                 </div>
                             </form>
+
+                            <script>
+                                function toggleBankSection() {
+                                    const role = document.getElementById('role').value;
+                                    const bankSection = document.getElementById('bankSection');
+                                    const bankInputs = bankSection.querySelectorAll('input');
+                                    
+                                    if (role === 'seller') {
+                                        bankSection.style.display = 'block';
+                                        bankInputs.forEach(input => input.setAttribute('required', 'required'));
+                                    } else {
+                                        bankSection.style.display = 'none';
+                                        bankInputs.forEach(input => {
+                                            input.removeAttribute('required');
+                                        });
+                                    }
+                                }
+                                
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    toggleBankSection();
+                                });
+                            </script>
                         </div>
                     </div>
                 </div>

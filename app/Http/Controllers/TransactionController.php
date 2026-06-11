@@ -261,17 +261,8 @@ class TransactionController extends Controller
                 $sellerServiceFee = ceil(($sellerSubtotal / $subtotal) * $serviceFee);
 
                 // --- Admin Payment Fee (Gateway) Logic ---
-                $paymentMethodObj = \App\Models\PaymentMethod::where('code', $request->payment_method)->first();
                 $totalAdminFee = 0;
-                if ($paymentMethodObj) {
-                    if ($paymentMethodObj->admin_fee_percent > 0) {
-                        $totalAdminFee += ceil($subtotal * $paymentMethodObj->admin_fee_percent / 100);
-                    }
-                    if ($paymentMethodObj->admin_fee > 0) {
-                        $totalAdminFee += $paymentMethodObj->admin_fee;
-                    }
-                }
-                $sellerAdminFee = ceil(($sellerSubtotal / $subtotal) * $totalAdminFee);
+                $sellerAdminFee = 0;
 
                 // --- Shipping Cost Logic ---
                 $sellerShippingCost = 0;
@@ -556,6 +547,26 @@ class TransactionController extends Controller
             'receipt_photos' => $photos,
         ]);
 
+        // Create pending payout record for the seller
+        $seller = \App\Models\User::find($transaction->seller_id);
+        $bankName = $seller->bank_name ?? 'Belum diatur';
+        $bankAccountNumber = $seller->bank_account_number ?? 'Belum diatur';
+        $bankAccountName = $seller->bank_account_name ?? 'Belum diatur';
+        $grossAmount = $transaction->seller_amount ?? $transaction->total_amount;
+        $platformFee = $transaction->service_fee ?? 0;
+        $netToSeller = ($grossAmount - $platformFee) + $transaction->shipping_cost;
+
+        \App\Models\PayoutRecord::createPending(
+            $transaction->id,
+            $transaction->seller_id,
+            $netToSeller,
+            $bankName,
+            $bankAccountNumber,
+            $bankAccountName,
+            null,
+            'Payout otomatis dibuat setelah pesanan diterima oleh pembeli.'
+        );
+
         // Add tracking logs
         \App\Models\OrderTrackingLog::addLog(
             $transaction->id,
@@ -577,14 +588,14 @@ class TransactionController extends Controller
 
         \App\Models\OrderTrackingLog::addLog(
             $transaction->id,
-            'completed',
-            'Transaksi Selesai',
-            'Dana diteruskan ke Penjual.',
+            'received',
+            'Tunggu Rilis Dana',
+            'Menunggu Admin melakukan transfer manual (WD) senilai Rp ' . number_format($netToSeller, 0, ',', '.') . ' ke rekening Penjual.',
             'system',
             null
         );
 
-        return back()->with('success', 'Transaksi Selesai! Terima kasih telah berbelanja.');
+        return back()->with('success', 'Konfirmasi penerimaan berhasil! Menunggu Admin melakukan pencairan dana ke rekening Penjual.');
     }
     public function cancel(Request $request, Transaction $transaction)
     {
